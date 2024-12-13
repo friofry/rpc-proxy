@@ -1,31 +1,28 @@
 local json = require "cjson"
 local url_parser = require "resty.url"
 
-local function load_providers_from_file(file_path, default_providers)
+local function cache_providers(cache, file_path)
     local file = io.open(file_path, "r")
     if not file then
-        ngx.log(ngx.ERR, "Failed to open providers config file: ", file_path)
-        return default_providers
+        ngx.log(ngx.ERR, "Providers file not found: ", file_path)
+        cache:flush_all() -- Clear any existing providers
+        return
     end
 
     local content = file:read("*a")
     file:close()
 
-    local ok, parsed
+    local ok, providers
     pcall(function()
-        parsed = json.decode(content)
+        providers = json.decode(content)
     end)
 
-    if not ok or not parsed or not parsed.providers or #parsed.providers == 0 then
-        ngx.log(ngx.ERR, "Invalid providers config format in file: ", file_path)
-        return default_providers
+    if not ok or not providers or #providers == 0 then
+        ngx.log(ngx.ERR, "Invalid or empty providers file: ", file_path)
+        cache:flush_all() -- Clear cache if invalid
+        return
     end
 
-    return parsed.providers
-end
-
-local function cache_providers(cache, file_path, default_providers)
-    local providers = load_providers_from_file(file_path, default_providers)
     local serialized = json.encode(providers)
     local success, err = cache:set("providers_data", serialized)
     if not success then
