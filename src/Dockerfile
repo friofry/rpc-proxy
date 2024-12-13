@@ -1,7 +1,6 @@
-FROM nginx:alpine
+FROM openresty/openresty:alpine
 
-# Копируем конфигурацию Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Копируем файл с логинами и паролями
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY .htpasswd /etc/nginx/.htpasswd
+COPY lua /etc/nginx/lua
+COPY providers.json /etc/nginx/providers.json
