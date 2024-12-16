@@ -58,31 +58,36 @@ end
 
 
 local function get_provider_for_attempt(cache, attempt, default_providers)
-    -- Получаем список провайдеров из кэша или используем провайдеры по умолчанию
     local providers = get_providers_from_cache(cache)
 
-    -- Если попыток больше, чем количество провайдеров, возвращаем ошибку
     if attempt > #providers then
         return nil, "No more providers to try"
     end
 
-    -- Выбираем провайдера для текущей попытки
     local provider = providers[attempt]
+    local cache_entry = cache:get(provider.url)
 
-    -- Проверяем наличие URL провайдера
-    if not provider.url or provider.url == "" then
-        return nil, "Provider URL is missing"
+    if not cache_entry then
+        ngx.log(ngx.ERR, "Provider not found in cache: ", provider.url)
+        return nil, "Provider not found in cache"
     end
 
-    -- Извлекаем host из URL
-    local host = provider.url:gsub("^https://", "") -- Убираем https://
+    local ok, data = pcall(function()
+        return cjson.decode(cache_entry)
+    end)
+
+    if not ok or not data or not data.ip then
+        ngx.log(ngx.ERR, "Failed to decode cache entry for provider: ", provider.url)
+        return nil, "Invalid cache entry"
+    end
 
     return {
-        host = host,
-        port = 443, -- Всегда HTTPS
-        auth_header = provider.auth_header -- Заголовок Authorization не используется
+        host = data.ip,
+        port = 443,
+        auth_header = data.auth_header
     }, nil
 end
+
 
 return {
     cache_providers = cache_providers,
