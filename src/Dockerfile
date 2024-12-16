@@ -1,6 +1,14 @@
 FROM openresty/openresty:alpine
 
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+
 COPY .htpasswd /etc/nginx/.htpasswd
-COPY lua /etc/nginx/lua
-COPY providers.json /etc/nginx/providers.json
+
+COPY lua /usr/local/openresty/nginx/lua
+COPY providers.json /usr/local/openresty/nginx/providers.json
+
+# Указываем порт, который будет использоваться
+EXPOSE 80
+
+# Команда запуска Nginx
+CMD ["openresty", "-g", "daemon off;"]
