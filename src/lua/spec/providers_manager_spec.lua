@@ -94,4 +94,38 @@ end)
         assert.is_nil(provider)
         assert.are.same("Provider not found in cache", err)
     end)
+
+
+    it("should return correct providers for attempts 1 to 4 and nil for attempt 5", function()
+        -- Подготавливаем провайдеров
+        local resolved_providers = {
+            { ip = "127.0.0.1", host = "example1.com", path = "/api1", auth_header = "token1" },
+            { ip = "127.0.0.2", host = "example2.com", path = "/api2", auth_header = "token2" },
+            { ip = "127.0.0.3", host = "example3.com", path = "/api3", auth_header = "token3" },
+            { ip = "127.0.0.4", host = "example4.com", path = "/api4", auth_header = "token4" },
+        }
+
+        -- Добавляем провайдеров в кэш
+        for i, provider in ipairs(resolved_providers) do
+            local key = tostring(i)
+            local value = cjson.encode(provider)
+            mock_cache:set(key, value)
+        end
+
+        -- Проверяем попытки с 1 по 4
+        for i = 1, 4 do
+            local provider, err = providers_manager.get_provider_for_attempt(mock_cache, i)
+            assert.is_nil(err)
+            assert.is_not_nil(provider)
+            assert.are.same(resolved_providers[i].ip, provider.host)
+            assert.are.same(443, provider.port)
+            assert.are.same(resolved_providers[i].path, provider.path)
+            assert.are.same(resolved_providers[i].auth_header, provider.auth_header)
+        end
+
+        -- Проверяем попытку 5 (должен вернуть nil и ошибку)
+        local provider, err = providers_manager.get_provider_for_attempt(mock_cache, 5)
+        assert.is_nil(provider)
+        assert.are.same("Provider not found in cache", err)
+    end)
 end)
