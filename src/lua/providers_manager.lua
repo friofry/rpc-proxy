@@ -108,7 +108,8 @@ local function get_provider_for_attempt(cache, attempt)
     end
 
     return {
-        host = data.ip,
+        ip = data.ip,
+        host = data.host,
         port = 443,
         path = data.path,
         auth_header = data.auth_header
