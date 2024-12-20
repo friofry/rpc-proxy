@@ -1,10 +1,10 @@
 [
   {
-    "url": "https://mainnet.infura.io/v3/111",
+    "url": "https://mainnet.infura.io/v3/f581d0087132480b8f8b08b3f790839b",
     "auth_header": ""
   },
   {
-    "url": "https://eth-mainnet.alchemyapi.io/v2/111",
+    "url": "https://eth-mainnet.alchemyapi.io/v2/idWAg2z17qkJCdOyrsMalfQEusPw--J3",
     "auth_header": ""
   }
 ]
