@@ -10,11 +10,6 @@ local function read_config_from_url(url)
 
     local httpc = http.new()
 
---     -- Указываем локальный резолвер для запросов к config-health-checker
---         httpc:set_timeout(5000) -- Устанавливаем таймаут в 5 секунд
---         httpc:connect("127.0.0.11", 53)
---         ngx.log(ngx.ERR, "Using local resolver for Docker DNS")
-
     local res, err = httpc:request_uri(url, {
         method = "GET",
         headers = {
