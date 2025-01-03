@@ -163,7 +163,7 @@ func (suite *ParallelCheckProvidersTestSuite) TestParallelCheckProviders() {
 				// No failures, but delay causes timeout
 			},
 			delay:   2 * time.Second,
-			timeout: 1 * time.Second,
+			timeout: 50 * time.Millisecond,
 			expectedResults: map[string]requestsrunner.ProviderResult{
 				"Provider1": {Success: false, Error: errors.New("context deadline exceeded"), Response: "", ElapsedTime: 0},
 				"Provider2": {Success: false, Error: errors.New("context deadline exceeded"), Response: "", ElapsedTime: 0},
