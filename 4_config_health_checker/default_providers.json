@@ -1,14 +1,24 @@
-[
-  {
-    "url": "https://mainnet.infura.io/v3/111",
-    "auth_header": ""
-  },
-  {
-    "url": "https://eth-mainnet.alchemyapi.io/v2/111--J3",
-    "auth_header": ""
-  },
-  {
-    "url": "https://another-provider.example.io/v2/xyz",
-    "auth_header": "Basic abc123"
-  }
-]
+{
+  "providers": [
+    {
+      "name": "InfuraMainnet",
+      "url": "https://mainnet.infura.io/v3",
+      "enabled": true,
+      "authType": "token-auth",
+      "authToken": "111"
+    },
+    {
+      "name": "AlchemyMainnet",
+      "url": "https://eth-mainnet.alchemyapi.io/v2",
+      "enabled": true,
+      "authType": "token-auth",
+      "authToken": "222"
+    },
+    {
+      "name": "Example",
+      "url": "https://another-provider.example,io/v2",
+      "enabled": true,
+      "authType": "no-auth"
+    }
+  ]
+}
