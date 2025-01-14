@@ -1,4 +1,4 @@
-package rpc_provider
+package rpcprovider
 
 import (
 	"io/ioutil"
@@ -10,28 +10,29 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// RpcProviderTestSuite определяет структуру тестового набора
+// RpcProviderTestSuite defines the structure of the test suite
 type RpcProviderTestSuite struct {
 	suite.Suite
-	tempDir     string
-	tempFile    string
-	validJSON   string
-	invalidJSON string
+	tempDir             string
+	tempFile            string
+	validJSON           string
+	invalidJSON         string
+	invalidAuthTypeJSON string
 }
 
-// SetupSuite выполняется перед запуском всех тестов в наборе
+// SetupSuite is executed before running all tests in the suite
 func (suite *RpcProviderTestSuite) SetupSuite() {
-	// Создаём временную директорию для тестов
+	// Create a temporary directory for tests
 	dir, err := os.MkdirTemp("", "rpc_provider_test")
 	if err != nil {
 		suite.T().Fatalf("Failed to create temp dir: %v", err)
 	}
 	suite.tempDir = dir
 
-	// Путь к временным файлам
+	// Path to temporary files
 	suite.tempFile = filepath.Join(suite.tempDir, "providers_test.json")
 
-	// Определяем корректный JSON
+	// Define valid JSON
 	suite.validJSON = `{
   "providers": [
     {
@@ -57,130 +58,146 @@ func (suite *RpcProviderTestSuite) SetupSuite() {
   ]
 }`
 
-	// Определяем некорректный JSON
+	// Define invalid JSON
 	suite.invalidJSON = `{
   "providers": [
     {
       "name": "BadProvider",
-      "url": "https://bad-provider.example.io"
+      "url": "https://bad-provider.example.io",
       "enabled": true,
       "authType": "no-auth"
     }
-  ]` // Обратите внимание на пропущенную запятую и закрывающую скобку
+  ]` // Note the missing comma and closing brace
+
+	suite.invalidAuthTypeJSON = `{	
+		"providers": [{
+			"name": "InfuraMainnet",
+			"url": "https://mainnet.infura.io/v3",
+			"enabled": true,
+			"authType": "invalid-auth"
+		}]
+	}`
 }
 
-// TearDownSuite выполняется после завершения всех тестов в наборе
+// TearDownSuite is executed after all tests in the suite
 func (suite *RpcProviderTestSuite) TearDownSuite() {
-	// Удаляем временную директорию и все её содержимое
+	// Remove the temporary directory and all its contents
 	os.RemoveAll(suite.tempDir)
 }
 
-// SetupTest выполняется перед каждым тестом
+// SetupTest is executed before each test
 func (suite *RpcProviderTestSuite) SetupTest() {
-	// Перед каждым тестом очищаем файл, если он существует
+	// Clear the file before each test if it exists
 	if _, err := os.Stat(suite.tempFile); err == nil {
 		os.Remove(suite.tempFile)
 	}
 }
 
-// TearDownTest выполняется после каждого теста
+// TearDownTest is executed after each test
 func (suite *RpcProviderTestSuite) TearDownTest() {
-	// Можно добавить дополнительные действия после каждого теста, если необходимо
+	// Additional actions can be added after each test if necessary
 }
 
-// TestReadRpcProvidersSuccess проверяет успешное чтение корректного JSON-файла
+// TestReadRpcProvidersSuccess checks successful reading of a valid JSON file
 func (suite *RpcProviderTestSuite) TestReadRpcProvidersSuccess() {
-	// Записываем корректный JSON в временный файл
+	// Write valid JSON to the temporary file
 	err := os.WriteFile(suite.tempFile, []byte(suite.validJSON), 0644)
 	suite.Require().NoError(err, "Failed to write valid JSON to temp file")
 
-	// Читаем провайдеров из файла
+	// Read providers from the file
 	providers, err := ReadRpcProviders(suite.tempFile)
 	suite.Require().NoError(err, "ReadRpcProviders() returned an error")
 
-	// Проверяем количество провайдеров
+	// Check the number of providers
 	suite.Equal(3, len(providers), "Expected 3 providers")
 
-	// Проверяем поля первого провайдера
+	// Check the fields of the first provider
 	first := providers[0]
 	suite.Equal("InfuraMainnet", first.Name, "First provider name mismatch")
 	suite.Equal("https://mainnet.infura.io/v3", first.URL, "First provider URL mismatch")
-	suite.True(first.Enabled, "First provider should be enabled")
 	suite.Equal(TokenAuth, first.AuthType, "First provider AuthType mismatch")
 	suite.Equal("infura-token", first.AuthToken, "First provider AuthToken mismatch")
 }
 
-// TestReadRpcProvidersFileNotFound проверяет, что функция возвращает ошибку для несуществующего файла
+// TestReadRpcProvidersFileNotFound checks that the function returns an error for a non-existent file
 func (suite *RpcProviderTestSuite) TestReadRpcProvidersFileNotFound() {
 	_, err := ReadRpcProviders(filepath.Join(suite.tempDir, "non_existent.json"))
 	suite.Error(err, "Expected error for non-existent file")
 }
 
-// TestReadRpcProvidersInvalidJSON проверяет, что функция возвращает ошибку для некорректного JSON
+// TestReadRpcProvidersInvalidJSON checks that the function returns an error for invalid JSON
 func (suite *RpcProviderTestSuite) TestReadRpcProvidersInvalidJSON() {
-	// Записываем некорректный JSON в временный файл
+	// Write invalid JSON to the temporary file
 	err := ioutil.WriteFile(suite.tempFile, []byte(suite.invalidJSON), 0644)
 	suite.Require().NoError(err, "Failed to write invalid JSON to temp file")
 
-	// Пытаемся прочитать провайдеров из файла
+	// Attempt to read providers from the file
 	_, err = ReadRpcProviders(suite.tempFile)
 	suite.Error(err, "Expected JSON parse error")
 }
 
-// TestWriteRpcProvidersAndReadBack проверяет, что запись и последующее чтение провайдеров работают корректно
+// TestInvalidAuthTypeJSON checks that the function returns an error for invalid JSON
+func (suite *RpcProviderTestSuite) TestInvalidAuthTypeJSON() {
+	err := ioutil.WriteFile(suite.tempFile, []byte(suite.invalidAuthTypeJSON), 0644)
+	suite.Require().NoError(err, "Failed to write invalid JSON to temp file")
+
+	// Attempt to read providers from the file
+	_, err = ReadRpcProviders(suite.tempFile)
+	suite.Error(err, "Expected JSON parse error")
+}
+
+// TestWriteRpcProvidersAndReadBack checks that writing and subsequent reading of providers works correctly
 func (suite *RpcProviderTestSuite) TestWriteRpcProvidersAndReadBack() {
-	// Создаём тестовых провайдеров
+	// Create test providers
 	wantProviders := []RpcProvider{
 		{
 			Name:      "TestProvider1",
 			URL:       "https://test1.example.com",
-			Enabled:   true,
 			AuthType:  NoAuth,
 			AuthToken: "",
 		},
 		{
 			Name:      "TestProvider2",
 			URL:       "https://test2.example.com",
-			Enabled:   false,
 			AuthType:  TokenAuth,
 			AuthToken: "dummy_token",
 		},
 	}
 
-	// Пишем провайдеров в файл
+	// Write providers to the file
 	err := WriteRpcProviders(suite.tempFile, wantProviders)
 	suite.Require().NoError(err, "WriteRpcProviders() returned an error")
 
-	// Читаем провайдеров из файла
+	// Read providers from the file
 	gotProviders, err := ReadRpcProviders(suite.tempFile)
 	suite.Require().NoError(err, "ReadRpcProviders() returned an error")
 
-	// Используем assert для сравнения
+	// Use assert to compare
 	assert.Equal(suite.T(), wantProviders, gotProviders, "Providers read from file do not match written providers")
 }
 
-// TestWriteRpcProvidersHandlesEmptyList проверяет, что функция корректно обрабатывает пустой список провайдеров
+// TestWriteRpcProvidersHandlesEmptyList checks that the function correctly handles an empty list of providers
 func (suite *RpcProviderTestSuite) TestWriteRpcProvidersHandlesEmptyList() {
-	// Пишем пустой список провайдеров в файл
+	// Write an empty list of providers to the file
 	err := WriteRpcProviders(suite.tempFile, []RpcProvider{})
 	suite.Require().NoError(err, "WriteRpcProviders() returned an error for empty list")
 
-	// Читаем провайдеров из файла
+	// Read providers from the file
 	gotProviders, err := ReadRpcProviders(suite.tempFile)
 	suite.Require().NoError(err, "ReadRpcProviders() returned an error for empty list")
 
-	// Проверяем, что список пуст
+	// Check that the list is empty
 	suite.Empty(gotProviders, "Expected no providers in the file")
 }
 
-// TestWriteRpcProvidersInvalidPath проверяет, что функция возвращает ошибку при попытке записи в недоступный путь
+// TestWriteRpcProvidersInvalidPath checks that the function returns an error when trying to write to an invalid path
 func (suite *RpcProviderTestSuite) TestWriteRpcProvidersInvalidPath() {
-	// Используем недопустимый путь (например, директорию вместо файла)
+	// Use an invalid path (e.g., a directory instead of a file)
 	err := WriteRpcProviders(suite.tempDir, []RpcProvider{})
 	suite.Error(err, "Expected error when writing to a directory path")
 }
 
-// Запуск тестового набора
+// Run the test suite
 func TestRpcProviderTestSuite(t *testing.T) {
 	suite.Run(t, new(RpcProviderTestSuite))
 }
