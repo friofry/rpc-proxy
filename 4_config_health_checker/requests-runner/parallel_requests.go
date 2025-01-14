@@ -174,3 +174,14 @@ func ParallelCheckProviders(ctx context.Context, providers []rpcprovider.RpcProv
 
 	return results
 }
+
+// ParallelCallEVMMethods executes EVM methods in parallel across multiple providers
+func ParallelCallEVMMethods(ctx context.Context, providers []rpcprovider.RpcProvider, method string, params []interface{}, timeout time.Duration) map[string]ProviderResult {
+	// Create a RequestFunc that wraps CallEVMMethod with the given method and params
+	checker := func(ctx context.Context, provider rpcprovider.RpcProvider) ProviderResult {
+		return CallEVMMethod(ctx, provider, method, params)
+	}
+
+	// Use ParallelCheckProviders to execute the calls in parallel
+	return ParallelCheckProviders(ctx, providers, timeout, checker)
+}

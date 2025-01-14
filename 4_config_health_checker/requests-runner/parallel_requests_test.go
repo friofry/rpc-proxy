@@ -229,6 +229,87 @@ func (suite *ParallelCheckProvidersTestSuite) TestParallelCheckProviders() {
 	}
 }
 
+func TestParallelCallEVMMethods(t *testing.T) {
+	// Create test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"jsonrpc":"2.0","result":"0x1"}`))
+	}))
+	defer server.Close()
+
+	// Create test providers
+	providers := []rpcprovider.RpcProvider{
+		{
+			Name:     "Provider1",
+			URL:      server.URL,
+			AuthType: rpcprovider.NoAuth,
+		},
+		{
+			Name:     "Provider2",
+			URL:      server.URL,
+			AuthType: rpcprovider.NoAuth,
+		},
+	}
+
+	// Test successful parallel execution
+	t.Run("SuccessfulExecution", func(t *testing.T) {
+		ctx := context.Background()
+		results := requestsrunner.ParallelCallEVMMethods(ctx, providers, "eth_blockNumber", nil, 1*time.Second)
+
+		assert.Len(t, results, len(providers))
+		for _, provider := range providers {
+			result, exists := results[provider.Name]
+			assert.True(t, exists)
+			assert.True(t, result.Success)
+			assert.Equal(t, `{"jsonrpc":"2.0","result":"0x1"}`, result.Response)
+			assert.Nil(t, result.Error)
+		}
+	})
+
+	// Test timeout
+	t.Run("Timeout", func(t *testing.T) {
+		// Create a slow test server that responds after 100ms
+		slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(100 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"jsonrpc":"2.0","result":"0x1"}`))
+		}))
+		defer slowServer.Close()
+
+		// Create providers pointing to the slow server
+		slowProviders := []rpcprovider.RpcProvider{
+			{
+				Name:     "SlowProvider1",
+				URL:      slowServer.URL,
+				AuthType: rpcprovider.NoAuth,
+			},
+			{
+				Name:     "SlowProvider2",
+				URL:      slowServer.URL,
+				AuthType: rpcprovider.NoAuth,
+			},
+		}
+
+		ctx := context.Background()
+		results := requestsrunner.ParallelCallEVMMethods(ctx, slowProviders, "eth_blockNumber", nil, 10*time.Millisecond)
+
+		assert.Len(t, results, len(slowProviders))
+		for _, provider := range slowProviders {
+			result, exists := results[provider.Name]
+			assert.True(t, exists)
+			assert.False(t, result.Success, "Expected timeout failure for provider %s", provider.Name)
+			assert.Contains(t, result.Error.Error(), "context deadline exceeded", "Expected timeout error for provider %s", provider.Name)
+		}
+	})
+
+	// Test empty providers
+	t.Run("EmptyProviders", func(t *testing.T) {
+		ctx := context.Background()
+		results := requestsrunner.ParallelCallEVMMethods(ctx, []rpcprovider.RpcProvider{}, "eth_blockNumber", nil, 1*time.Second)
+		assert.Empty(t, results)
+	})
+}
+
 // TestParallelCheckProvidersContextCancellation tests handling of context cancellation.
 func (suite *ParallelCheckProvidersTestSuite) TestParallelCheckProvidersContextCancellation() {
 	// Use getSampleProviders to define providers
