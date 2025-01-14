@@ -1,8 +1,11 @@
-package requests_runner_test
+package requestsrunner_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -10,7 +13,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
-	rpcprovider "github.com/friofry/config-health-checker/rpc-provider"
+	"github.com/friofry/config-health-checker/rpcprovider"
 )
 
 // ParallelCheckProvidersTestSuite defines the test suite for ParallelCheckProviders.
@@ -24,20 +27,17 @@ func getSampleProviders() []rpcprovider.RpcProvider {
 		{
 			Name:     "Provider1",
 			URL:      "https://provider1.example.com",
-			Enabled:  true,
 			AuthType: rpcprovider.NoAuth,
 		},
 		{
 			Name:      "Provider2",
 			URL:       "https://provider2.example.com",
-			Enabled:   true,
 			AuthType:  rpcprovider.TokenAuth,
 			AuthToken: "dummy_token",
 		},
 		{
 			Name:         "Provider3",
 			URL:          "https://provider3.example.com",
-			Enabled:      true,
 			AuthType:     rpcprovider.BasicAuth,
 			AuthLogin:    "user",
 			AuthPassword: "pass",
@@ -198,7 +198,6 @@ func (suite *ParallelCheckProvidersTestSuite) TestParallelCheckProviders() {
 				{
 					Name:      "Provider1",
 					URL:       "https://provider1.example.com",
-					Enabled:   true,
 					AuthType:  rpcprovider.RpcProviderAuthType("invalid-auth"), // Assuming RpcProviderAuthType is a string alias
 					AuthToken: "",
 				},
@@ -275,4 +274,154 @@ func (suite *ParallelCheckProvidersTestSuite) TestParallelCheckProvidersContextC
 // Run the test suite
 func TestParallelCheckProvidersTestSuite(t *testing.T) {
 	suite.Run(t, new(ParallelCheckProvidersTestSuite))
+}
+
+func TestCallEVMMethod(t *testing.T) {
+	tests := []struct {
+		name         string
+		provider     rpcprovider.RpcProvider
+		method       string
+		params       []interface{}
+		handler      func(http.ResponseWriter, *http.Request)
+		wantSuccess  bool
+		wantResponse string
+		wantError    string
+	}{
+		{
+			name: "Successful NoAuth request",
+			provider: rpcprovider.RpcProvider{
+				Name:     "test",
+				URL:      "", // Will be set to test server URL
+				AuthType: rpcprovider.NoAuth,
+			},
+			method: "eth_blockNumber",
+			params: []interface{}{},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "POST", r.Method)
+				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+				var req map[string]interface{}
+				err := json.NewDecoder(r.Body).Decode(&req)
+				assert.NoError(t, err)
+				assert.Equal(t, "2.0", req["jsonrpc"])
+				assert.Equal(t, "eth_blockNumber", req["method"])
+				assert.Equal(t, []interface{}{}, req["params"])
+				assert.Equal(t, float64(1), req["id"])
+
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"jsonrpc":"2.0","result":"0x1"}`))
+			},
+			wantSuccess:  true,
+			wantResponse: `{"jsonrpc":"2.0","result":"0x1"}`,
+		},
+		{
+			name: "Successful BasicAuth request",
+			provider: rpcprovider.RpcProvider{
+				Name:         "test",
+				URL:          "", // Will be set to test server URL
+				AuthType:     rpcprovider.BasicAuth,
+				AuthLogin:    "user",
+				AuthPassword: "pass",
+			},
+			method: "eth_getBalance",
+			params: []interface{}{"0x123", "latest"},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				user, pass, ok := r.BasicAuth()
+				assert.True(t, ok)
+				assert.Equal(t, "user", user)
+				assert.Equal(t, "pass", pass)
+
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"jsonrpc":"2.0","result":"0x100"}`))
+			},
+			wantSuccess:  true,
+			wantResponse: `{"jsonrpc":"2.0","result":"0x100"}`,
+		},
+		{
+			name: "Successful TokenAuth request",
+			provider: rpcprovider.RpcProvider{
+				Name:      "test",
+				URL:       "", // Will be set to test server URL
+				AuthType:  rpcprovider.TokenAuth,
+				AuthToken: "test-token",
+			},
+			method: "eth_chainId",
+			params: []interface{}{},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				// Verify token is in URL path
+				assert.Contains(t, r.URL.String(), "test-token")
+
+				// Verify no Authorization header
+				assert.Empty(t, r.Header.Get("Authorization"))
+
+				// Verify JSON-RPC request
+				var req map[string]interface{}
+				err := json.NewDecoder(r.Body).Decode(&req)
+				assert.NoError(t, err)
+				assert.Equal(t, "2.0", req["jsonrpc"])
+				assert.Equal(t, "eth_chainId", req["method"])
+				assert.Equal(t, []interface{}{}, req["params"])
+				assert.Equal(t, float64(1), req["id"])
+
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"jsonrpc":"2.0","result":"0x1"}`))
+			},
+			wantSuccess:  true,
+			wantResponse: `{"jsonrpc":"2.0","result":"0x1"}`,
+		},
+		{
+			name: "Server error response",
+			provider: rpcprovider.RpcProvider{
+				Name:     "test",
+				URL:      "", // Will be set to test server URL
+				AuthType: rpcprovider.NoAuth,
+			},
+			method: "eth_blockNumber",
+			params: []interface{}{},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			wantSuccess: false,
+			wantError:   "500",
+		},
+		{
+			name: "Invalid JSON response",
+			provider: rpcprovider.RpcProvider{
+				Name:     "test",
+				URL:      "", // Will be set to test server URL
+				AuthType: rpcprovider.NoAuth,
+			},
+			method: "eth_blockNumber",
+			params: []interface{}{},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`invalid json`))
+			},
+			wantSuccess:  true,
+			wantResponse: "invalid json",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create test server
+			server := httptest.NewServer(http.HandlerFunc(tt.handler))
+			defer server.Close()
+
+			// Update provider URL
+			tt.provider.URL = server.URL
+
+			// Call the method
+			result := requestsrunner.CallEVMMethod(context.Background(), tt.provider, tt.method, tt.params)
+
+			// Verify results
+			assert.Equal(t, tt.wantSuccess, result.Success)
+			if tt.wantResponse != "" {
+				assert.Equal(t, tt.wantResponse, result.Response)
+			}
+			if tt.wantError != "" {
+				assert.Contains(t, result.Error.Error(), tt.wantError)
+			}
+		})
+	}
 }
