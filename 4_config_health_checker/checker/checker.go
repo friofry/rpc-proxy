@@ -28,37 +28,47 @@ type Test struct {
 	Func requestsrunner.RequestFunc
 }
 
+// EVMMethodTestConfig contains configuration for testing an EVM method
+type EVMMethodTestConfig struct {
+	Method      string
+	Params      []interface{}
+	CompareFunc func(reference, result *big.Int) bool
+}
+
 // TestEVMMethodWithCaller is a version of TestEVMMethod that accepts an EVMMethodCaller
 // interface for dependency injection, primarily for testing
 func TestEVMMethodWithCaller(
 	ctx context.Context,
 	config EVMMethodTestConfig,
 	caller EVMMethodCaller,
+	providers []rpcprovider.RpcProvider,
+	referenceProvider rpcprovider.RpcProvider,
+	timeout time.Duration,
 ) map[string]CheckResult {
 	// Combine reference provider with test providers
-	allProviders := append([]rpcprovider.RpcProvider{config.ReferenceProvider}, config.Providers...)
+	allProviders := append([]rpcprovider.RpcProvider{referenceProvider}, providers...)
 
 	// Execute the EVM method using the provided caller
 	results := make(map[string]requestsrunner.ProviderResult)
 	for _, provider := range allProviders {
-		results[provider.Name] = caller.CallEVMMethod(ctx, provider, config.Method, config.Params, config.Timeout)
+		results[provider.Name] = caller.CallEVMMethod(ctx, provider, config.Method, config.Params, timeout)
 	}
 
 	// Extract reference result
-	refResult, refExists := results[config.ReferenceProvider.Name]
+	refResult, refExists := results[referenceProvider.Name]
 	if !refExists || !refResult.Success {
-		return handleReferenceFailure(results, config.ReferenceProvider.Name)
+		return handleReferenceFailure(results, referenceProvider.Name)
 	}
 
 	// Parse reference value
 	refValue, err := parseJSONRPCResult(refResult.Response)
 	if err != nil {
-		return handleReferenceParseError(results, config.ReferenceProvider.Name, err)
+		return handleReferenceParseError(results, referenceProvider.Name, err)
 	}
 
 	// Compare each provider's result to reference
 	checkResults := make(map[string]CheckResult)
-	for _, provider := range config.Providers {
+	for _, provider := range providers {
 		result, exists := results[provider.Name]
 		if !exists {
 			checkResults[provider.Name] = CheckResult{
@@ -89,14 +99,12 @@ func TestEVMMethodWithCaller(
 			continue
 		}
 
-		// Calculate difference from reference
-		diff := new(big.Int).Abs(new(big.Int).Sub(providerValue, refValue))
-		valid := diff.Cmp(config.MaxDiff) <= 0
+		// Use provided comparison function
+		valid := config.CompareFunc(refValue, providerValue)
 
 		checkResults[provider.Name] = CheckResult{
 			Valid:  valid,
 			Result: result,
-			Diff:   diff,
 		}
 	}
 
@@ -107,18 +115,7 @@ func TestEVMMethodWithCaller(
 type CheckResult struct {
 	Valid  bool
 	Result requestsrunner.ProviderResult
-	Diff   *big.Int // Difference from reference value
 	Error  error
-}
-
-// EVMMethodTestConfig contains configuration for testing an EVM method
-type EVMMethodTestConfig struct {
-	ReferenceProvider rpcprovider.RpcProvider
-	Providers         []rpcprovider.RpcProvider
-	Method            string
-	Params            []interface{}
-	MaxDiff           *big.Int
-	Timeout           time.Duration
 }
 
 // handleReferenceFailure handles cases where reference provider fails

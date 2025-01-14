@@ -64,48 +64,40 @@ func TestTestEVMMethod(t *testing.T) {
 		},
 	}
 
+	// Create comparison function
+	compareFunc := func(reference, result *big.Int) bool {
+		diff := new(big.Int).Abs(new(big.Int).Sub(result, reference))
+		return diff.Cmp(big.NewInt(2)) <= 0
+	}
+
 	t.Run("successful validation", func(t *testing.T) {
-		maxDiff := big.NewInt(2)
 		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			ReferenceProvider: referenceProvider,
-			Providers:         []rpcprovider.RpcProvider{validProvider},
-			Method:            "eth_blockNumber",
-			Params:            nil,
-			MaxDiff:           maxDiff,
-			Timeout:           500 * time.Millisecond,
-		}, mockCaller)
+			Method:      "eth_blockNumber",
+			Params:      nil,
+			CompareFunc: compareFunc,
+		}, mockCaller, []rpcprovider.RpcProvider{validProvider}, referenceProvider, 500*time.Millisecond)
 
 		assert.Len(t, results, 1)
 		assert.True(t, results["valid"].Valid)
-		assert.Equal(t, big.NewInt(1), results["valid"].Diff)
 	})
 
 	t.Run("invalid result", func(t *testing.T) {
-		maxDiff := big.NewInt(2)
 		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			ReferenceProvider: referenceProvider,
-			Providers:         []rpcprovider.RpcProvider{invalidProvider},
-			Method:            "eth_blockNumber",
-			Params:            nil,
-			MaxDiff:           maxDiff,
-			Timeout:           500 * time.Millisecond,
-		}, mockCaller)
+			Method:      "eth_blockNumber",
+			Params:      nil,
+			CompareFunc: compareFunc,
+		}, mockCaller, []rpcprovider.RpcProvider{invalidProvider}, referenceProvider, 500*time.Millisecond)
 
 		assert.Len(t, results, 1)
 		assert.False(t, results["invalid"].Valid)
-		assert.Equal(t, big.NewInt(10), results["invalid"].Diff)
 	})
 
 	t.Run("provider error", func(t *testing.T) {
-		maxDiff := big.NewInt(2)
 		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			ReferenceProvider: referenceProvider,
-			Providers:         []rpcprovider.RpcProvider{errorProvider},
-			Method:            "eth_blockNumber",
-			Params:            nil,
-			MaxDiff:           maxDiff,
-			Timeout:           500 * time.Millisecond,
-		}, mockCaller)
+			Method:      "eth_blockNumber",
+			Params:      nil,
+			CompareFunc: compareFunc,
+		}, mockCaller, []rpcprovider.RpcProvider{errorProvider}, referenceProvider, 500*time.Millisecond)
 
 		assert.Len(t, results, 1)
 		assert.False(t, results["error"].Valid)
@@ -127,15 +119,11 @@ func TestTestEVMMethod(t *testing.T) {
 			},
 		}
 
-		maxDiff := big.NewInt(2)
 		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			ReferenceProvider: referenceProvider,
-			Providers:         []rpcprovider.RpcProvider{validProvider},
-			Method:            "eth_blockNumber",
-			Params:            nil,
-			MaxDiff:           maxDiff,
-			Timeout:           500 * time.Millisecond,
-		}, failingMock)
+			Method:      "eth_blockNumber",
+			Params:      nil,
+			CompareFunc: compareFunc,
+		}, failingMock, []rpcprovider.RpcProvider{validProvider}, referenceProvider, 500*time.Millisecond)
 
 		assert.Len(t, results, 1)
 		assert.False(t, results["valid"].Valid)
