@@ -1,6 +1,7 @@
 {
   "chains": [
     {
+      "chainId": 1,
       "name": "ethereum",
       "network": "mainnet",
       "providers": [
@@ -14,6 +15,7 @@
       ]
     },
     {
+      "chainId": 137,
       "name": "polygon",
       "network": "mainnet",
       "providers": [

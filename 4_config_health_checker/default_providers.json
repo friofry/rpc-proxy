@@ -1,6 +1,7 @@
 {
   "chains": [
     {
+      "chainId": 1,
       "name": "Ethereum",
       "network": "mainnet",
       "providers": [
@@ -27,6 +28,7 @@
       ]
     },
     {
+      "chainId": 11155111,
       "name": "Ethereum",
       "network": "sepolia",
       "providers": [
