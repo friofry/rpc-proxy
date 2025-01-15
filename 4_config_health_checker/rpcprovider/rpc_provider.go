@@ -11,12 +11,12 @@ const (
 
 // RpcProvider represents the configuration of an RPC provider with various options
 type RpcProvider struct {
-	Name         string              `json:"name" validate:"required,min=1"`                                   // Provider name for identification
-	URL          string              `json:"url" validate:"required,url"`                                      // URL of the current provider
-	AuthType     RpcProviderAuthType `json:"authType" validate:"required,oneof=no-auth basic-auth token-auth"` // Authentication type
-	AuthLogin    string              `json:"authLogin" validate:"omitempty,min=1"`                             // Login for BasicAuth (empty string if not used)
-	AuthPassword string              `json:"authPassword" validate:"omitempty,min=1"`                          // Password for BasicAuth (empty string if not used)
-	AuthToken    string              `json:"authToken" validate:"omitempty,min=1"`                             // Token for TokenAuth (empty string if not used)
+	Name         string              `json:"name" validate:"required,min=1"`                                          // Provider name for identification
+	URL          string              `json:"url" validate:"required,url"`                                             // URL of the current provider
+	AuthType     RpcProviderAuthType `json:"authType" validate:"required,oneof=no-auth basic-auth token-auth"`        // Authentication type
+	AuthLogin    string              `json:"authLogin" validate:"required_if=AuthType basic-auth,omitempty,min=1"`    // Login for BasicAuth
+	AuthPassword string              `json:"authPassword" validate:"required_if=AuthType basic-auth,omitempty,min=1"` // Password for BasicAuth
+	AuthToken    string              `json:"authToken" validate:"required_if=AuthType token-auth,omitempty,min=1"`    // Token for TokenAuth
 }
 
 // method unmarshal json and validate field "Enabled" exists

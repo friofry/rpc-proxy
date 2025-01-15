@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	rpcprovider "github.com/friofry/config-health-checker/rpcprovider"
+	"github.com/go-playground/validator/v10"
 )
 
 // ChainConfig represents configuration for a blockchain network
@@ -131,24 +132,18 @@ func (c *ReferenceChainConfig) normalize() {
 	c.Network = strings.ToLower(c.Network)
 }
 
+var validate = validator.New()
+
 // validateChainConfig validates required fields in chain configuration
 func validateChainConfig(chain ChainConfig) error {
-	if chain.Name == "" {
-		return errors.New("chain name is required")
-	}
-	if chain.Network == "" {
-		return errors.New("network is required")
-	}
-	if len(chain.Providers) == 0 {
-		return errors.New("at least one provider is required")
+	// Validate struct fields
+	if err := validate.Struct(chain); err != nil {
+		return err
 	}
 
-	// Ensure values are lowercase
-	if chain.Name != strings.ToLower(chain.Name) {
-		return errors.New("chain name must be lowercase")
-	}
-	if chain.Network != strings.ToLower(chain.Network) {
-		return errors.New("network must be lowercase")
+	// Additional custom validation
+	if len(chain.Providers) == 0 {
+		return errors.New("at least one provider is required")
 	}
 
 	return nil

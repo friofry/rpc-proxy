@@ -228,7 +228,11 @@ func TestValidateChainConfig(t *testing.T) {
 				Name:    "ethereum",
 				Network: "mainnet",
 				Providers: []rpcprovider.RpcProvider{
-					{Name: "provider1"},
+					{
+						Name:     "provider1",
+						URL:      "https://provider1.example.com",
+						AuthType: "no-auth",
+					},
 				},
 			},
 			wantErr: false,
