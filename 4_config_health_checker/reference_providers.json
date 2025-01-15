@@ -1,0 +1,30 @@
+{
+  "chains": [
+    {
+      "name": "ethereum",
+      "network": "mainnet",
+      "providers": [
+        {
+          "name": "infura",
+          "url": "https://mainnet.infura.io/v3",
+          "authType": "token-auth",
+          "authToken": "test",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "name": "polygon",
+      "network": "mainnet",
+      "providers": [
+        {
+          "name": "alchemy",
+          "url": "https://polygon-mainnet.g.alchemy.com/v2",
+          "authType": "token-auth",
+          "authToken": "test",
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}
