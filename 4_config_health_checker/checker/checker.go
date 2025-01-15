@@ -12,17 +12,6 @@ import (
 	"github.com/friofry/config-health-checker/rpcprovider"
 )
 
-// EVMMethodCaller defines the interface for calling EVM methods
-type EVMMethodCaller interface {
-	CallEVMMethod(
-		ctx context.Context,
-		provider rpcprovider.RpcProvider,
-		method string,
-		params []interface{},
-		timeout time.Duration,
-	) requestsrunner.ProviderResult
-}
-
 // EVMMethodTestConfig contains configuration for testing an EVM method
 type EVMMethodTestConfig struct {
 	Method      string
