@@ -13,6 +13,7 @@ import (
 
 // ChainConfig represents configuration for a blockchain network
 type ChainConfig struct {
+	ChainID   int64                     `json:"chainId" validate:"required"`
 	Name      string                    `json:"name" validate:"required,lowercase"`
 	Network   string                    `json:"network" validate:"required,lowercase"`
 	Providers []rpcprovider.RpcProvider `json:"providers" validate:"required,dive"`
@@ -20,6 +21,7 @@ type ChainConfig struct {
 
 // ReferenceChainConfig represents configuration for reference providers
 type ReferenceChainConfig struct {
+	ChainID  int64                   `json:"chainId" validate:"required"`
 	Name     string                  `json:"name" validate:"required,lowercase"`
 	Network  string                  `json:"network" validate:"required,lowercase"`
 	Provider rpcprovider.RpcProvider `json:"provider" validate:"required"`
