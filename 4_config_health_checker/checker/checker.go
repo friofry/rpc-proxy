@@ -177,6 +177,60 @@ func handleReferenceParseError(results map[string]requestsrunner.ProviderResult,
 	return checkResults
 }
 
+// ValidateMultipleEVMMethods runs multiple EVM method tests and returns validation summary
+func ValidateMultipleEVMMethods(
+	ctx context.Context,
+	methodConfigs []EVMMethodTestConfig,
+	caller EVMMethodCaller,
+	providers []rpcprovider.RpcProvider,
+	referenceProvider rpcprovider.RpcProvider,
+	timeout time.Duration,
+) map[string]ProviderValidationResult {
+	// Run all method tests
+	methodResults := TestMultipleEVMMethods(ctx, methodConfigs, caller, providers, referenceProvider, timeout)
+
+	// Prepare validation results
+	validationResults := make(map[string]ProviderValidationResult)
+
+	for providerName, results := range methodResults {
+		// Track failed methods
+		failedMethods := make(map[string]FailedMethodResult)
+		allValid := true
+
+		for method, result := range results {
+			if !result.Valid {
+				allValid = false
+				// Get reference result for this method
+				refResult := methodResults[referenceProvider.Name][method]
+
+				failedMethods[method] = FailedMethodResult{
+					Result:          result.Result,
+					ReferenceResult: refResult.Result,
+				}
+			}
+		}
+
+		validationResults[providerName] = ProviderValidationResult{
+			Valid:         allValid,
+			FailedMethods: failedMethods,
+		}
+	}
+
+	return validationResults
+}
+
+// ProviderValidationResult contains aggregated validation results for a provider
+type ProviderValidationResult struct {
+	Valid         bool                          // Overall validation status
+	FailedMethods map[string]FailedMethodResult // Map of failed test methods to their results
+}
+
+// FailedMethodResult contains details about a failed method test
+type FailedMethodResult struct {
+	Result          requestsrunner.ProviderResult // Raw result from the provider
+	ReferenceResult requestsrunner.ProviderResult // Raw result from the reference provider
+}
+
 // parseJSONRPCResult extracts the numeric result from a JSON-RPC response
 func parseJSONRPCResult(response string) (*big.Int, error) {
 	var jsonResponse struct {
