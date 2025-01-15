@@ -1,9 +1,9 @@
 {
   "chains": [
     {
-      "chainId": 1,
       "name": "Ethereum",
       "network": "mainnet",
+      "chainId": 1,
       "providers": [
         {
           "name": "InfuraMainnet",
@@ -28,9 +28,9 @@
       ]
     },
     {
-      "chainId": 11155111,
       "name": "Ethereum",
       "network": "sepolia",
+      "chainId": 11155111,
       "providers": [
         {
           "name": "InfuraSepolia",

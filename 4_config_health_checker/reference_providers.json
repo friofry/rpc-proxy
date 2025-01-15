@@ -1,9 +1,9 @@
 {
   "chains": [
     {
-      "chainId": 1,
       "name": "ethereum",
       "network": "mainnet",
+      "chainId": 1,
       "providers": [
         {
           "name": "infura",
@@ -15,9 +15,9 @@
       ]
     },
     {
-      "chainId": 137,
       "name": "polygon",
       "network": "mainnet",
+      "chainId": 137,
       "providers": [
         {
           "name": "alchemy",

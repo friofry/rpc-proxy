@@ -15,6 +15,7 @@ func TestLoadChains(t *testing.T) {
 			{
 				"name": "ethereum",
 				"network": "mainnet",
+				"chainId": 1,
 				"providers": [
 					{
 						"name": "infura",
@@ -42,6 +43,7 @@ func TestLoadChains(t *testing.T) {
 		assert.Len(t, chains, 1)
 		assert.Equal(t, "ethereum", chains[0].Name)
 		assert.Equal(t, "mainnet", chains[0].Network)
+		assert.Equal(t, 1, chains[0].ChainId)
 		assert.Len(t, chains[0].Providers, 1)
 	})
 
@@ -71,6 +73,7 @@ func TestLoadReferenceChains(t *testing.T) {
 			{
 				"name": "ethereum",
 				"network": "mainnet",
+				"chainId": 1,
 				"provider": {
 					"name": "infura",
 					"url": "https://mainnet.infura.io/v3",
@@ -96,6 +99,7 @@ func TestLoadReferenceChains(t *testing.T) {
 		assert.Len(t, chains, 1)
 		assert.Equal(t, "ethereum", chains[0].Name)
 		assert.Equal(t, "mainnet", chains[0].Network)
+		assert.Equal(t, 1, chains[0].ChainId)
 		assert.Equal(t, "infura", chains[0].Provider.Name)
 	})
 
@@ -136,6 +140,7 @@ func TestLoadReferenceChains(t *testing.T) {
 				{
 					"name": "ETHEREUM",
 					"network": "MAINNET",
+					"chainId": 1,
 					"provider": {
 						"name": "infura",
 						"url": "https://mainnet.infura.io/v3",
@@ -159,6 +164,7 @@ func TestLoadReferenceChains(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "ethereum", chains[0].Name)
 		assert.Equal(t, "mainnet", chains[0].Network)
+		assert.Equal(t, 1, chains[0].ChainId)
 	})
 }
 
@@ -167,10 +173,12 @@ func TestGetChainByNameAndNetwork(t *testing.T) {
 		{
 			Name:    "ethereum",
 			Network: "mainnet",
+			ChainId: 1,
 		},
 		{
 			Name:    "ethereum",
 			Network: "sepolia",
+			ChainId: 11155111,
 		},
 	}
 
@@ -178,6 +186,7 @@ func TestGetChainByNameAndNetwork(t *testing.T) {
 		chain, err := GetChainByNameAndNetwork(chains, "ethereum", "mainnet")
 		assert.NoError(t, err)
 		assert.Equal(t, "mainnet", chain.Network)
+		assert.Equal(t, 1, chain.ChainId)
 	})
 
 	t.Run("not found", func(t *testing.T) {
@@ -191,6 +200,7 @@ func TestGetReferenceProvider(t *testing.T) {
 		{
 			Name:    "ethereum",
 			Network: "mainnet",
+			ChainId: 1,
 			Provider: rpcprovider.RpcProvider{
 				Name: "infura",
 			},
@@ -198,6 +208,7 @@ func TestGetReferenceProvider(t *testing.T) {
 		{
 			Name:    "ethereum",
 			Network: "sepolia",
+			ChainId: 11155111,
 			Provider: rpcprovider.RpcProvider{
 				Name: "alchemy",
 			},
@@ -227,6 +238,7 @@ func TestValidateChainConfig(t *testing.T) {
 			config: ChainConfig{
 				Name:    "ethereum",
 				Network: "mainnet",
+				ChainId: 1,
 				Providers: []rpcprovider.RpcProvider{
 					{
 						Name:     "provider1",
@@ -241,6 +253,7 @@ func TestValidateChainConfig(t *testing.T) {
 			name: "missing name",
 			config: ChainConfig{
 				Network: "mainnet",
+				ChainId: 1,
 				Providers: []rpcprovider.RpcProvider{
 					{Name: "provider1"},
 				},
@@ -250,7 +263,8 @@ func TestValidateChainConfig(t *testing.T) {
 		{
 			name: "missing network",
 			config: ChainConfig{
-				Name: "ethereum",
+				Name:    "ethereum",
+				ChainId: 1,
 				Providers: []rpcprovider.RpcProvider{
 					{Name: "provider1"},
 				},
@@ -262,6 +276,18 @@ func TestValidateChainConfig(t *testing.T) {
 			config: ChainConfig{
 				Name:    "ethereum",
 				Network: "mainnet",
+				ChainId: 1,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing chainId",
+			config: ChainConfig{
+				Name:    "ethereum",
+				Network: "mainnet",
+				Providers: []rpcprovider.RpcProvider{
+					{Name: "provider1"},
+				},
 			},
 			wantErr: true,
 		},
