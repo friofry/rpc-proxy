@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMultipleEVMMethodsUsingHelper(t *testing.T) {
+func TestValidateMultipleEVMMethods(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -73,8 +73,8 @@ func TestMultipleEVMMethodsUsingHelper(t *testing.T) {
 		},
 	}
 
-	t.Run("successful multiple method validation", func(t *testing.T) {
-		results := TestMultipleEVMMethods(
+	t.Run("successful validation with some failures", func(t *testing.T) {
+		results := ValidateMultipleEVMMethods(
 			ctx,
 			methodConfigs,
 			mockCaller,
@@ -90,15 +90,15 @@ func TestMultipleEVMMethodsUsingHelper(t *testing.T) {
 
 		// Verify providerA results
 		providerAResults := results["providerA"]
-		assert.Len(t, providerAResults, 2)
-		assert.True(t, providerAResults["eth_blockNumber"].Valid)
-		assert.True(t, providerAResults["eth_chainId"].Valid)
+		assert.True(t, providerAResults.Valid)
+		assert.Len(t, providerAResults.FailedMethods, 0)
 
 		// Verify providerB results
 		providerBResults := results["providerB"]
-		assert.Len(t, providerBResults, 2)
-		assert.False(t, providerBResults["eth_blockNumber"].Valid)
-		assert.False(t, providerBResults["eth_chainId"].Valid)
+		assert.False(t, providerBResults.Valid)
+		assert.Len(t, providerBResults.FailedMethods, 2)
+		assert.Contains(t, providerBResults.FailedMethods, "eth_blockNumber")
+		assert.Contains(t, providerBResults.FailedMethods, "eth_chainId")
 	})
 
 	t.Run("reference provider failure", func(t *testing.T) {
@@ -116,157 +116,68 @@ func TestMultipleEVMMethodsUsingHelper(t *testing.T) {
 			},
 		}
 
-		results := make(map[string]map[string]CheckResult)
-		for _, config := range methodConfigs {
-			methodResults := TestEVMMethodWithCaller(
-				ctx,
-				config,
-				failingMock,
-				[]rpcprovider.RpcProvider{providerA},
-				referenceProvider,
-				500*time.Millisecond,
-			)
-
-			for providerName, result := range methodResults {
-				if results[providerName] == nil {
-					results[providerName] = make(map[string]CheckResult)
-				}
-				results[providerName][config.Method] = result
-			}
-		}
+		results := ValidateMultipleEVMMethods(
+			ctx,
+			methodConfigs,
+			failingMock,
+			[]rpcprovider.RpcProvider{providerA},
+			referenceProvider,
+			500*time.Millisecond,
+		)
 
 		// Verify all results are invalid due to reference failure
 		providerAResults := results["providerA"]
-		assert.Len(t, providerAResults, 2)
-		assert.False(t, providerAResults["eth_blockNumber"].Valid)
-		assert.False(t, providerAResults["eth_chainId"].Valid)
-		assert.Error(t, providerAResults["eth_blockNumber"].Error)
-		assert.Error(t, providerAResults["eth_chainId"].Error)
-	})
-}
-
-func TestTestEVMMethod(t *testing.T) {
-	// Create test context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	// Create mock providers
-	referenceProvider := rpcprovider.RpcProvider{
-		Name:     "reference",
-		URL:      "http://reference.com",
-		AuthType: rpcprovider.NoAuth,
-	}
-
-	validProvider := rpcprovider.RpcProvider{
-		Name:     "valid",
-		URL:      "http://valid.com",
-		AuthType: rpcprovider.NoAuth,
-	}
-
-	invalidProvider := rpcprovider.RpcProvider{
-		Name:     "invalid",
-		URL:      "http://invalid.com",
-		AuthType: rpcprovider.NoAuth,
-	}
-
-	errorProvider := rpcprovider.RpcProvider{
-		Name:     "error",
-		URL:      "http://error.com",
-		AuthType: rpcprovider.NoAuth,
-	}
-
-	// Create mock EVMMethodCaller
-	mockCaller := &mockEVMMethodCaller{
-		responses: map[string]requestsrunner.ProviderResult{
-			"reference": {
-				Success:  true,
-				Response: `{"result":"0x64"}`,
-			},
-			"valid": {
-				Success:  true,
-				Response: `{"result":"0x65"}`,
-			},
-			"invalid": {
-				Success:  true,
-				Response: `{"result":"0x6e"}`,
-			},
-			"error": {
-				Success: false,
-				Error:   errors.New("connection error"),
-			},
-		},
-	}
-
-	// Create comparison function
-	compareFunc := func(reference, result *big.Int) bool {
-		diff := new(big.Int).Abs(new(big.Int).Sub(result, reference))
-		return diff.Cmp(big.NewInt(2)) <= 0
-	}
-
-	t.Run("successful validation", func(t *testing.T) {
-		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			Method:      "eth_blockNumber",
-			Params:      nil,
-			CompareFunc: compareFunc,
-		}, mockCaller, []rpcprovider.RpcProvider{validProvider}, referenceProvider, 500*time.Millisecond)
-
-		assert.Len(t, results, 1)
-		assert.True(t, results["valid"].Valid)
+		assert.False(t, providerAResults.Valid)
+		assert.Len(t, providerAResults.FailedMethods, 2)
 	})
 
-	t.Run("invalid result", func(t *testing.T) {
-		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			Method:      "eth_blockNumber",
-			Params:      nil,
-			CompareFunc: compareFunc,
-		}, mockCaller, []rpcprovider.RpcProvider{invalidProvider}, referenceProvider, 500*time.Millisecond)
-
-		assert.Len(t, results, 1)
-		assert.False(t, results["invalid"].Valid)
-	})
-
-	t.Run("provider error", func(t *testing.T) {
-		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			Method:      "eth_blockNumber",
-			Params:      nil,
-			CompareFunc: compareFunc,
-		}, mockCaller, []rpcprovider.RpcProvider{errorProvider}, referenceProvider, 500*time.Millisecond)
-
-		assert.Len(t, results, 1)
-		assert.False(t, results["error"].Valid)
-		assert.Error(t, results["error"].Error)
-	})
-
-	t.Run("reference provider failure", func(t *testing.T) {
-		// Create new mock with failing reference provider
-		failingMock := &mockEVMMethodCaller{
+	t.Run("partial provider failures", func(t *testing.T) {
+		partialMock := &mockEVMMethodCaller{
 			responses: map[string]requestsrunner.ProviderResult{
 				"reference": {
-					Success: false,
-					Error:   errors.New("reference failed"),
+					Success:  true,
+					Response: `{"result":"0x64"}`,
 				},
-				"valid": {
+				"providerA": {
 					Success:  true,
 					Response: `{"result":"0x65"}`,
 				},
 			},
+			methodResponses: map[string]map[string]requestsrunner.ProviderResult{
+				"providerA": {
+					"eth_blockNumber": {
+						Success:  true,
+						Response: `{"result":"0x65"}`,
+					},
+					"eth_chainId": {
+						Success: false,
+						Error:   errors.New("method failed"),
+					},
+				},
+			},
 		}
 
-		results := TestEVMMethodWithCaller(ctx, EVMMethodTestConfig{
-			Method:      "eth_blockNumber",
-			Params:      nil,
-			CompareFunc: compareFunc,
-		}, failingMock, []rpcprovider.RpcProvider{validProvider}, referenceProvider, 500*time.Millisecond)
+		results := ValidateMultipleEVMMethods(
+			ctx,
+			methodConfigs,
+			partialMock,
+			[]rpcprovider.RpcProvider{providerA},
+			referenceProvider,
+			500*time.Millisecond,
+		)
 
-		assert.Len(t, results, 1)
-		assert.False(t, results["valid"].Valid)
-		assert.Error(t, results["valid"].Error)
+		// Verify partial failure results
+		providerAResults := results["providerA"]
+		assert.False(t, providerAResults.Valid)
+		assert.Len(t, providerAResults.FailedMethods, 1)
+		assert.Contains(t, providerAResults.FailedMethods, "eth_chainId")
 	})
 }
 
 // mockEVMMethodCaller implements the EVMMethodCaller interface for testing
 type mockEVMMethodCaller struct {
-	responses map[string]requestsrunner.ProviderResult
+	responses       map[string]requestsrunner.ProviderResult
+	methodResponses map[string]map[string]requestsrunner.ProviderResult
 }
 
 func (m *mockEVMMethodCaller) CallEVMMethod(
@@ -276,5 +187,12 @@ func (m *mockEVMMethodCaller) CallEVMMethod(
 	params []interface{},
 	timeout time.Duration,
 ) requestsrunner.ProviderResult {
+	// Check if there are method-specific responses
+	if methodResponses, ok := m.methodResponses[provider.Name]; ok {
+		if response, ok := methodResponses[method]; ok {
+			return response
+		}
+	}
+	// Fall back to general provider response
 	return m.responses[provider.Name]
 }
