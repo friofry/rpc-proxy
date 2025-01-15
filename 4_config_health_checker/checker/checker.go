@@ -23,11 +23,6 @@ type EVMMethodCaller interface {
 	) requestsrunner.ProviderResult
 }
 
-type Test struct {
-	Name string
-	Func requestsrunner.RequestFunc
-}
-
 // EVMMethodTestConfig contains configuration for testing an EVM method
 type EVMMethodTestConfig struct {
 	Method      string
@@ -35,8 +30,12 @@ type EVMMethodTestConfig struct {
 	CompareFunc func(reference, result *big.Int) bool
 }
 
-// TestEVMMethodWithCaller is a version of TestEVMMethod that accepts an EVMMethodCaller
-// interface for dependency injection, primarily for testing
+// MultiMethodTestResult contains results for multiple method tests
+type MultiMethodTestResult struct {
+	Results map[string]CheckResult // method -> result
+}
+
+// TestEVMMethodWithCaller tests a single EVM method
 func TestEVMMethodWithCaller(
 	ctx context.Context,
 	config EVMMethodTestConfig,
@@ -116,6 +115,35 @@ type CheckResult struct {
 	Valid  bool
 	Result requestsrunner.ProviderResult
 	Error  error
+}
+
+// TestMultipleEVMMethods runs multiple EVM method tests and returns results per provider per method
+func TestMultipleEVMMethods(
+	ctx context.Context,
+	methodConfigs []EVMMethodTestConfig, // list of method configs
+	caller EVMMethodCaller,
+	providers []rpcprovider.RpcProvider,
+	referenceProvider rpcprovider.RpcProvider,
+	timeout time.Duration,
+) map[string]map[string]CheckResult { // provider -> method -> result
+	results := make(map[string]map[string]CheckResult)
+
+	// Initialize result structure
+	for _, provider := range providers {
+		results[provider.Name] = make(map[string]CheckResult)
+	}
+
+	// Run tests for each method
+	for _, config := range methodConfigs {
+		methodResults := TestEVMMethodWithCaller(ctx, config, caller, providers, referenceProvider, timeout)
+
+		// Store results per provider using method name from config
+		for providerName, result := range methodResults {
+			results[providerName][config.Method] = result
+		}
+	}
+
+	return results
 }
 
 // handleReferenceFailure handles cases where reference provider fails
