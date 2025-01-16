@@ -1,7 +1,6 @@
 package confighttpserver
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -15,17 +14,13 @@ type Provider struct {
 
 type Server struct {
 	port          string
-	defaultPath   string
-	referencePath string
-	outputPath    string
+	providersPath string
 }
 
-func New(port, defaultPath, referencePath, outputPath string) *Server {
+func New(port, providersPath string) *Server {
 	return &Server{
 		port:          port,
-		defaultPath:   defaultPath,
-		referencePath: referencePath,
-		outputPath:    outputPath,
+		providersPath: providersPath,
 	}
 }
 
@@ -38,7 +33,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) providersHandler(w http.ResponseWriter, r *http.Request) {
-	f, err := os.Open(s.outputPath)
+	f, err := os.Open(s.providersPath)
 	if err != nil {
 		http.Error(w, "failed to open providers file", http.StatusInternalServerError)
 		return
@@ -55,28 +50,4 @@ func (s *Server) providersHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
-}
-
-func UpdateProviders(defaultPath, referencePath, outputPath string) error {
-	defaultData, err := os.ReadFile(defaultPath)
-	if err != nil {
-		return err
-	}
-
-	var providers []Provider
-	if err := json.Unmarshal(defaultData, &providers); err != nil {
-		return err
-	}
-
-	if len(providers) < 2 {
-		return nil
-	}
-
-	selected := providers[:2]
-	outData, err := json.MarshalIndent(selected, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(outputPath, outData, 0644)
 }

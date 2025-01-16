@@ -63,8 +63,6 @@ func main() {
 
 	server := confighttpserver.New(
 		port,
-		config.DefaultProvidersPath,
-		config.ReferenceProvidersPath,
 		config.OutputProvidersPath,
 	)
 	if err := server.Start(); err != nil {
