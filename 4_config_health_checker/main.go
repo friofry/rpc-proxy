@@ -1,14 +1,31 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
 
+	"github.com/friofry/config-health-checker/checker"
 	"github.com/friofry/config-health-checker/confighttpserver"
 	"github.com/friofry/config-health-checker/configreader"
 	"github.com/friofry/config-health-checker/periodictask"
+	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
+	"github.com/friofry/config-health-checker/rpcprovider"
 )
+
+type EVMMethodCallerImpl struct{}
+
+func (c *EVMMethodCallerImpl) CallEVMMethod(
+	ctx context.Context,
+	provider rpcprovider.RpcProvider,
+	method string,
+	params []interface{},
+	timeout time.Duration,
+) requestsrunner.ProviderResult {
+	// TODO: Implement actual EVM method calling
+	return requestsrunner.ProviderResult{}
+}
 
 func main() {
 	// Read configuration
@@ -17,32 +34,26 @@ func main() {
 		log.Fatalf("failed to read configuration: %v", err)
 	}
 
-	// Initialize providers
-	if err := confighttpserver.UpdateProviders(
-		config.DefaultProvidersPath,
-		config.ReferenceProvidersPath,
-		config.OutputProvidersPath,
-	); err != nil {
-		log.Printf("initial update providers failed: %v", err)
+	// Create EVM method caller
+	caller := &EVMMethodCallerImpl{}
+
+	// Create runner
+	runner, err := checker.NewRunnerFromConfig(*config, caller)
+	if err != nil {
+		log.Fatalf("failed to create runner: %v", err)
 	}
 
-	// Create periodic task for updating providers
-	updateTask := periodictask.New(
+	// Create periodic task for running validation
+	validationTask := periodictask.New(
 		time.Duration(config.IntervalSeconds)*time.Second,
 		func() {
-			if err := confighttpserver.UpdateProviders(
-				config.DefaultProvidersPath,
-				config.ReferenceProvidersPath,
-				config.OutputProvidersPath,
-			); err != nil {
-				log.Printf("error updating providers: %v", err)
-			}
+			runner.Run(context.Background())
 		},
 	)
 
 	// Start the periodic task
-	updateTask.Start()
-	defer updateTask.Stop()
+	validationTask.Start()
+	defer validationTask.Stop()
 
 	// Start HTTP server
 	port := os.Getenv("PORT")
