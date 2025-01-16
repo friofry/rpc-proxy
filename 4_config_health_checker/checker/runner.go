@@ -77,31 +77,89 @@ func NewChainValidationRunner(
 	}
 }
 
-// Run executes validation across all configured chains
-func (r *ChainValidationRunner) Run(ctx context.Context) map[int64]map[string]ProviderValidationResult {
+// Run executes validation across all configured chains and writes valid providers to output file
+func (r *ChainValidationRunner) Run(ctx context.Context) {
 	results := make(map[int64]map[string]ProviderValidationResult)
+	validChains := r.validateChains(ctx, results)
+
+	r.writeValidChains(validChains)
+}
+
+// validateChains runs validation for all chains and returns valid chains
+func (r *ChainValidationRunner) validateChains(ctx context.Context, results map[int64]map[string]ProviderValidationResult) []chainconfig.ChainConfig {
+	var validChains []chainconfig.ChainConfig
 
 	for chainId, chainCfg := range r.chainConfigs {
-		// Get reference provider for this chain
-		refCfg, exists := r.referenceChainCfgs[chainId]
-		if !exists {
-			continue
+		if refCfg, exists := r.referenceChainCfgs[chainId]; exists {
+			chainResults := r.validateChain(ctx, chainCfg, refCfg)
+			results[chainId] = chainResults
+
+			if validProviders := r.getValidProviders(chainCfg, chainResults); len(validProviders) > 0 {
+				validChains = append(validChains, chainconfig.ChainConfig{
+					ChainId:   chainCfg.ChainId,
+					Providers: validProviders,
+				})
+			}
 		}
-
-		// Run validation for this chain
-		chainResults := ValidateMultipleEVMMethods(
-			ctx,
-			r.methodConfigs,
-			r.caller,
-			chainCfg.Providers,
-			refCfg.Provider,
-			r.timeout,
-		)
-
-		results[chainId] = chainResults
 	}
 
-	return results
+	return validChains
+}
+
+// validateChain runs validation for a single chain
+func (r *ChainValidationRunner) validateChain(
+	ctx context.Context,
+	chainCfg chainconfig.ChainConfig,
+	refCfg chainconfig.ReferenceChainConfig,
+) map[string]ProviderValidationResult {
+	return ValidateMultipleEVMMethods(
+		ctx,
+		r.methodConfigs,
+		r.caller,
+		chainCfg.Providers,
+		refCfg.Provider,
+		r.timeout,
+	)
+}
+
+// getValidProviders filters and returns valid providers from validation results
+func (r *ChainValidationRunner) getValidProviders(
+	chainCfg chainconfig.ChainConfig,
+	results map[string]ProviderValidationResult,
+) []rpcprovider.RpcProvider {
+	var validProviders []rpcprovider.RpcProvider
+
+	for providerName, result := range results {
+		if result.Valid {
+			if provider := r.findProviderByName(chainCfg.Providers, providerName); provider != nil {
+				validProviders = append(validProviders, *provider)
+			}
+		}
+	}
+
+	return validProviders
+}
+
+// findProviderByName finds a provider by name in the list
+func (r *ChainValidationRunner) findProviderByName(
+	providers []rpcprovider.RpcProvider,
+	name string,
+) *rpcprovider.RpcProvider {
+	for _, provider := range providers {
+		if provider.Name == name {
+			return &provider
+		}
+	}
+	return nil
+}
+
+// writeValidChains writes valid chains to output file if path is specified
+func (r *ChainValidationRunner) writeValidChains(validChains []chainconfig.ChainConfig) {
+	if r.outputProvidersPath != "" {
+		if err := chainconfig.WriteChains(r.outputProvidersPath, validChains); err != nil {
+			fmt.Printf("Failed to write valid providers: %v\n", err)
+		}
+	}
 }
 
 // NewRunnerFromConfig creates a new ChainValidationRunner from configreader.CheckerConfig
@@ -128,30 +186,5 @@ func NewRunnerFromConfig(
 		caller,
 		time.Duration(cfg.IntervalSeconds)*time.Second,
 		cfg.OutputProvidersPath,
-	), nil
-}
-
-// RunForChain executes validation for a specific chain
-func (r *ChainValidationRunner) RunForChain(
-	ctx context.Context,
-	chainId int64,
-) (map[string]ProviderValidationResult, error) {
-	chainCfg, exists := r.chainConfigs[chainId]
-	if !exists {
-		return nil, fmt.Errorf("chain config not found for chainId: %d", chainId)
-	}
-
-	refCfg, exists := r.referenceChainCfgs[chainId]
-	if !exists {
-		return nil, fmt.Errorf("reference config not found for chainId: %d", chainId)
-	}
-
-	return ValidateMultipleEVMMethods(
-		ctx,
-		r.methodConfigs,
-		r.caller,
-		chainCfg.Providers,
-		refCfg.Provider,
-		r.timeout,
 	), nil
 }
