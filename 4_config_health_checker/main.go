@@ -23,16 +23,16 @@ func main() {
 	// Create EVM method caller using RequestsRunner
 	caller := requestsrunner.NewRequestsRunner()
 
-	// Create runner
-	runner, err := checker.NewRunnerFromConfig(*config, caller)
-	if err != nil {
-		log.Fatalf("failed to create runner: %v", err)
-	}
-
 	// Create periodic task for running validation
 	validationTask := periodictask.New(
 		time.Duration(config.IntervalSeconds)*time.Second,
 		func() {
+			// Create fresh runner for each execution
+			runner, err := checker.NewRunnerFromConfig(*config, caller)
+			if err != nil {
+				log.Printf("failed to create runner: %v", err)
+				return
+			}
 			runner.Run(context.Background())
 		},
 	)
