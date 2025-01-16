@@ -11,21 +11,7 @@ import (
 	"github.com/friofry/config-health-checker/configreader"
 	"github.com/friofry/config-health-checker/periodictask"
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
-	"github.com/friofry/config-health-checker/rpcprovider"
 )
-
-type EVMMethodCallerImpl struct{}
-
-func (c *EVMMethodCallerImpl) CallEVMMethod(
-	ctx context.Context,
-	provider rpcprovider.RpcProvider,
-	method string,
-	params []interface{},
-	timeout time.Duration,
-) requestsrunner.ProviderResult {
-	// TODO: Implement actual EVM method calling
-	return requestsrunner.ProviderResult{}
-}
 
 func main() {
 	// Read configuration
@@ -34,8 +20,8 @@ func main() {
 		log.Fatalf("failed to read configuration: %v", err)
 	}
 
-	// Create EVM method caller
-	caller := &EVMMethodCallerImpl{}
+	// Create EVM method caller using RequestsRunner
+	caller := requestsrunner.NewRequestsRunner()
 
 	// Create runner
 	runner, err := checker.NewRunnerFromConfig(*config, caller)
