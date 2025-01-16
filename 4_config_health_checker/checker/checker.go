@@ -36,11 +36,9 @@ func TestEVMMethodWithCaller(
 	// Combine reference provider with test providers
 	allProviders := append([]rpcprovider.RpcProvider{referenceProvider}, providers...)
 
-	// Execute the EVM method using the provided caller
-	results := make(map[string]requestsrunner.ProviderResult)
-	for _, provider := range allProviders {
-		results[provider.Name] = caller.CallEVMMethod(ctx, provider, config.Method, config.Params, timeout)
-	}
+	// Execute the EVM method in parallel using ParallelCallEVMMethods
+	runner := requestsrunner.NewRequestsRunner()
+	results := requestsrunner.ParallelCallEVMMethods(ctx, allProviders, config.Method, config.Params, timeout, runner)
 
 	// Extract reference result
 	refResult, refExists := results[referenceProvider.Name]
