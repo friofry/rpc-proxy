@@ -79,6 +79,7 @@ func TestChainValidationRunner_Run(t *testing.T) {
 		methodConfigs,
 		mockCaller,
 		10*time.Second,
+		"", // Empty output path for tests
 	)
 
 	// Run tests
@@ -148,6 +149,7 @@ func TestChainValidationRunner_RunForChain(t *testing.T) {
 		methodConfigs,
 		mockCaller,
 		10*time.Second,
+		"", // Empty output path for tests
 	)
 
 	// Test valid chain
@@ -213,6 +215,7 @@ func TestChainValidationRunner_ReferenceProviderFailure(t *testing.T) {
 		methodConfigs,
 		mockCaller,
 		10*time.Second,
+		"", // Empty output path for tests
 	)
 
 	// Run tests

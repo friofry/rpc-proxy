@@ -50,11 +50,12 @@ type EVMMethodCaller interface {
 
 // ChainValidationRunner coordinates validation across multiple chains
 type ChainValidationRunner struct {
-	chainConfigs       map[int64]chainconfig.ChainConfig
-	referenceChainCfgs map[int64]chainconfig.ReferenceChainConfig
-	methodConfigs      []EVMMethodTestConfig
-	caller             EVMMethodCaller
-	timeout            time.Duration
+	chainConfigs        map[int64]chainconfig.ChainConfig
+	referenceChainCfgs  map[int64]chainconfig.ReferenceChainConfig
+	methodConfigs       []EVMMethodTestConfig
+	caller              EVMMethodCaller
+	timeout             time.Duration
+	outputProvidersPath string
 }
 
 // NewChainValidationRunner creates a new validation runner
@@ -64,13 +65,15 @@ func NewChainValidationRunner(
 	methodConfigs []EVMMethodTestConfig,
 	caller EVMMethodCaller,
 	timeout time.Duration,
+	outputProvidersPath string,
 ) *ChainValidationRunner {
 	return &ChainValidationRunner{
-		chainConfigs:       chainCfgs,
-		referenceChainCfgs: referenceCfgs,
-		methodConfigs:      methodConfigs,
-		caller:             caller,
-		timeout:            timeout,
+		chainConfigs:        chainCfgs,
+		referenceChainCfgs:  referenceCfgs,
+		methodConfigs:       methodConfigs,
+		caller:              caller,
+		timeout:             timeout,
+		outputProvidersPath: outputProvidersPath,
 	}
 }
 
@@ -124,6 +127,7 @@ func NewRunnerFromConfig(
 		nil, // MethodConfigs will need to be implemented separately
 		caller,
 		time.Duration(cfg.IntervalSeconds)*time.Second,
+		cfg.OutputProvidersPath,
 	), nil
 }
 

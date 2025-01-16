@@ -134,6 +134,26 @@ func (c *ReferenceChainConfig) normalize() {
 	c.Network = strings.ToLower(c.Network)
 }
 
+// WriteChains writes chain configurations to a JSON file
+func WriteChains(filePath string, chains []ChainConfig) error {
+	config := struct {
+		Chains []ChainConfig `json:"chains"`
+	}{
+		Chains: chains,
+	}
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal chains: %w", err)
+	}
+
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write chains file: %w", err)
+	}
+
+	return nil
+}
+
 var validate = validator.New()
 
 // validateChainConfig validates required fields in chain configuration
