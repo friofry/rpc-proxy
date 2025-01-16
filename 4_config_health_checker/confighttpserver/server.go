@@ -14,12 +14,18 @@ type Provider struct {
 }
 
 type Server struct {
-	port string
+	port          string
+	defaultPath   string
+	referencePath string
+	outputPath    string
 }
 
-func New(port string) *Server {
+func New(port, defaultPath, referencePath, outputPath string) *Server {
 	return &Server{
-		port: port,
+		port:          port,
+		defaultPath:   defaultPath,
+		referencePath: referencePath,
+		outputPath:    outputPath,
 	}
 }
 
@@ -32,9 +38,9 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) providersHandler(w http.ResponseWriter, r *http.Request) {
-	f, err := os.Open("providers.json")
+	f, err := os.Open(s.outputPath)
 	if err != nil {
-		http.Error(w, "failed to open providers.json", http.StatusInternalServerError)
+		http.Error(w, "failed to open providers file", http.StatusInternalServerError)
 		return
 	}
 	defer f.Close()
@@ -51,8 +57,8 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-func UpdateProviders() error {
-	defaultData, err := os.ReadFile("default_providers.json")
+func UpdateProviders(defaultPath, referencePath, outputPath string) error {
+	defaultData, err := os.ReadFile(defaultPath)
 	if err != nil {
 		return err
 	}
@@ -72,5 +78,5 @@ func UpdateProviders() error {
 		return err
 	}
 
-	return os.WriteFile("providers.json", outData, 0644)
+	return os.WriteFile(outputPath, outData, 0644)
 }

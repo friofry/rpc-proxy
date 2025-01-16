@@ -6,9 +6,36 @@ import (
 	"time"
 
 	"github.com/friofry/config-health-checker/chainconfig"
+	"github.com/friofry/config-health-checker/configreader"
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	"github.com/friofry/config-health-checker/rpcprovider"
 )
+
+func loadChainsToMap(filePath string) (map[int64]chainconfig.ChainConfig, error) {
+	chains, err := chainconfig.LoadChains(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	chainMap := make(map[int64]chainconfig.ChainConfig)
+	for _, chain := range chains {
+		chainMap[int64(chain.ChainId)] = chain
+	}
+	return chainMap, nil
+}
+
+func loadReferenceChainsToMap(filePath string) (map[int64]chainconfig.ReferenceChainConfig, error) {
+	chains, err := chainconfig.LoadReferenceChains(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	chainMap := make(map[int64]chainconfig.ReferenceChainConfig)
+	for _, chain := range chains {
+		chainMap[int64(chain.ChainId)] = chain
+	}
+	return chainMap, nil
+}
 
 // EVMMethodCaller defines the interface for calling EVM methods
 type EVMMethodCaller interface {
@@ -72,6 +99,32 @@ func (r *ChainValidationRunner) Run(ctx context.Context) map[int64]map[string]Pr
 	}
 
 	return results
+}
+
+// NewRunnerFromConfig creates a new ChainValidationRunner from configreader.CheckerConfig
+func NewRunnerFromConfig(
+	cfg configreader.CheckerConfig,
+	caller EVMMethodCaller,
+) (*ChainValidationRunner, error) {
+	// Load reference chains
+	referenceChains, err := loadReferenceChainsToMap(cfg.ReferenceProvidersPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load reference chains: %w", err)
+	}
+
+	// Load default chains
+	defaultChains, err := loadChainsToMap(cfg.DefaultProvidersPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load default chains: %w", err)
+	}
+
+	return NewChainValidationRunner(
+		defaultChains,
+		referenceChains,
+		nil, // MethodConfigs will need to be implemented separately
+		caller,
+		time.Duration(cfg.IntervalSeconds)*time.Second,
+	), nil
 }
 
 // RunForChain executes validation for a specific chain
