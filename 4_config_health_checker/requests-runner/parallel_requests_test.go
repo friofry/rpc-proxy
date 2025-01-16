@@ -254,7 +254,8 @@ func TestParallelCallEVMMethods(t *testing.T) {
 	// Test successful parallel execution
 	t.Run("SuccessfulExecution", func(t *testing.T) {
 		ctx := context.Background()
-		results := requestsrunner.ParallelCallEVMMethods(ctx, providers, "eth_blockNumber", nil, 1*time.Second)
+		runner := requestsrunner.NewRequestsRunner()
+		results := requestsrunner.ParallelCallEVMMethods(ctx, providers, "eth_blockNumber", nil, 1*time.Second, runner)
 
 		assert.Len(t, results, len(providers))
 		for _, provider := range providers {
@@ -291,7 +292,8 @@ func TestParallelCallEVMMethods(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		results := requestsrunner.ParallelCallEVMMethods(ctx, slowProviders, "eth_blockNumber", nil, 10*time.Millisecond)
+		runner := requestsrunner.NewRequestsRunner()
+		results := requestsrunner.ParallelCallEVMMethods(ctx, slowProviders, "eth_blockNumber", nil, 10*time.Millisecond, runner)
 
 		assert.Len(t, results, len(slowProviders))
 		for _, provider := range slowProviders {
@@ -305,7 +307,8 @@ func TestParallelCallEVMMethods(t *testing.T) {
 	// Test empty providers
 	t.Run("EmptyProviders", func(t *testing.T) {
 		ctx := context.Background()
-		results := requestsrunner.ParallelCallEVMMethods(ctx, []rpcprovider.RpcProvider{}, "eth_blockNumber", nil, 1*time.Second)
+		runner := requestsrunner.NewRequestsRunner()
+		results := requestsrunner.ParallelCallEVMMethods(ctx, []rpcprovider.RpcProvider{}, "eth_blockNumber", nil, 1*time.Second, runner)
 		assert.Empty(t, results)
 	})
 }
@@ -493,7 +496,8 @@ func TestCallEVMMethod(t *testing.T) {
 			tt.provider.URL = server.URL
 
 			// Call the method
-			result := requestsrunner.CallEVMMethod(context.Background(), tt.provider, tt.method, tt.params)
+			runner := requestsrunner.NewRequestsRunner()
+			result := runner.CallEVMMethod(context.Background(), tt.provider, tt.method, tt.params, 1*time.Second)
 
 			// Verify results
 			assert.Equal(t, tt.wantSuccess, result.Success)

@@ -22,7 +22,14 @@ type ProviderResult struct {
 }
 
 // CallEVMMethod makes an HTTP POST request to an RPC provider for a specific EVM method
-func CallEVMMethod(ctx context.Context, provider rpcprovider.RpcProvider, method string, params []interface{}) ProviderResult {
+// Implements the EVMMethodCaller interface
+func (r *RequestsRunner) CallEVMMethod(
+	ctx context.Context,
+	provider rpcprovider.RpcProvider,
+	method string,
+	params []interface{},
+	timeout time.Duration,
+) ProviderResult {
 	startTime := time.Now()
 
 	// Create JSON-RPC 2.0 request body
@@ -175,11 +182,31 @@ func ParallelCheckProviders(ctx context.Context, providers []rpcprovider.RpcProv
 	return results
 }
 
+// RequestsRunner implements EVMMethodCaller interface
+type RequestsRunner struct{}
+
+// NewRequestsRunner creates a new instance of RequestsRunner
+func NewRequestsRunner() *RequestsRunner {
+	return &RequestsRunner{}
+}
+
+// EVMMethodCaller defines the interface for calling EVM methods
+type EVMMethodCaller interface {
+	CallEVMMethod(ctx context.Context, provider rpcprovider.RpcProvider, method string, params []interface{}, timeout time.Duration) ProviderResult
+}
+
 // ParallelCallEVMMethods executes EVM methods in parallel across multiple providers
-func ParallelCallEVMMethods(ctx context.Context, providers []rpcprovider.RpcProvider, method string, params []interface{}, timeout time.Duration) map[string]ProviderResult {
+func ParallelCallEVMMethods(
+	ctx context.Context,
+	providers []rpcprovider.RpcProvider,
+	method string,
+	params []interface{},
+	timeout time.Duration,
+	caller EVMMethodCaller,
+) map[string]ProviderResult {
 	// Create a RequestFunc that wraps CallEVMMethod with the given method and params
 	checker := func(ctx context.Context, provider rpcprovider.RpcProvider) ProviderResult {
-		return CallEVMMethod(ctx, provider, method, params)
+		return caller.CallEVMMethod(ctx, provider, method, params, timeout)
 	}
 
 	// Use ParallelCheckProviders to execute the calls in parallel
