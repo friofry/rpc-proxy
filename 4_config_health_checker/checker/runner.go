@@ -37,23 +37,12 @@ func loadReferenceChainsToMap(filePath string) (map[int64]chainconfig.ReferenceC
 	return chainMap, nil
 }
 
-// EVMMethodCaller defines the interface for calling EVM methods
-type EVMMethodCaller interface {
-	CallEVMMethod(
-		ctx context.Context,
-		provider rpcprovider.RpcProvider,
-		method string,
-		params []interface{},
-		timeout time.Duration,
-	) requestsrunner.ProviderResult
-}
-
 // ChainValidationRunner coordinates validation across multiple chains
 type ChainValidationRunner struct {
 	chainConfigs        map[int64]chainconfig.ChainConfig
 	referenceChainCfgs  map[int64]chainconfig.ReferenceChainConfig
 	methodConfigs       []EVMMethodTestConfig
-	caller              EVMMethodCaller
+	caller              requestsrunner.EVMMethodCaller
 	timeout             time.Duration
 	outputProvidersPath string
 }
@@ -63,7 +52,7 @@ func NewChainValidationRunner(
 	chainCfgs map[int64]chainconfig.ChainConfig,
 	referenceCfgs map[int64]chainconfig.ReferenceChainConfig,
 	methodConfigs []EVMMethodTestConfig,
-	caller EVMMethodCaller,
+	caller requestsrunner.EVMMethodCaller,
 	timeout time.Duration,
 	outputProvidersPath string,
 ) *ChainValidationRunner {
@@ -165,7 +154,7 @@ func (r *ChainValidationRunner) writeValidChains(validChains []chainconfig.Chain
 // NewRunnerFromConfig creates a new ChainValidationRunner from configreader.CheckerConfig
 func NewRunnerFromConfig(
 	cfg configreader.CheckerConfig,
-	caller EVMMethodCaller,
+	caller requestsrunner.EVMMethodCaller,
 ) (*ChainValidationRunner, error) {
 	// Load reference chains
 	referenceChains, err := loadReferenceChainsToMap(cfg.ReferenceProvidersPath)

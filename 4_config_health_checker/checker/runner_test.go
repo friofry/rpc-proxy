@@ -58,16 +58,19 @@ func TestChainValidationRunner_Run(t *testing.T) {
 	mockCaller := &MockEVMMethodCaller{
 		results: map[string]requestsrunner.ProviderResult{
 			"reference": {
-				Success:  true,
-				Response: `{"result":"0x1234"}`,
+				Success:     true,
+				Response:    `{"jsonrpc":"2.0","id":1,"result":"0x1234"}`,
+				ElapsedTime: 100 * time.Millisecond,
 			},
 			"provider1": {
-				Success:  true,
-				Response: `{"result":"0x1234"}`,
+				Success:     true,
+				Response:    `{"jsonrpc":"2.0","id":1,"result":"0x1234"}`,
+				ElapsedTime: 100 * time.Millisecond,
 			},
 			"provider2": {
-				Success:  true,
-				Response: `{"result":"0x5678"}`,
+				Success:     true,
+				Response:    `{"jsonrpc":"2.0","id":1,"result":"0x5678"}`,
+				ElapsedTime: 100 * time.Millisecond,
 			},
 		},
 	}
@@ -84,9 +87,6 @@ func TestChainValidationRunner_Run(t *testing.T) {
 
 	// Run tests
 	runner.Run(context.Background())
-
-	// Since Run no longer returns results, we need to verify the output file
-	// or other side effects instead. For now, just verify it runs without errors.
 }
 
 func TestChainValidationRunner_ReferenceProviderFailure(t *testing.T) {
@@ -140,9 +140,6 @@ func TestChainValidationRunner_ReferenceProviderFailure(t *testing.T) {
 
 	// Run tests
 	runner.Run(context.Background())
-
-	// Since Run no longer returns results, we need to verify the output file
-	// or other side effects instead. For now, just verify it runs without errors.
 }
 
 func TestChainValidationRunner_ValidateChains(t *testing.T) {
@@ -204,26 +201,27 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 		results := make(map[int64]map[string]ProviderValidationResult)
 		runner.validateChains(context.Background(), results)
 
-		assert.Contains(t, results, int64(1))
+		assert.Contains(t, results, int64(1), "should have results for chain ID 1")
 
 		chainResults := results[1]
-		assert.Contains(t, chainResults, "provider1")
-		assert.True(t, chainResults["provider1"].Valid)
-		assert.Contains(t, chainResults, "provider2")
-		assert.False(t, chainResults["provider2"].Valid)
+		assert.Contains(t, chainResults, "provider1", "should have results for provider1")
+		assert.True(t, chainResults["provider1"].Valid, "provider1 should be valid")
+		assert.Contains(t, chainResults, "provider2", "should have results for provider2")
+		assert.False(t, chainResults["provider2"].Valid, "provider2 should be invalid")
+		assert.Equal(t, "0x5678", chainResults["provider2"].FailedMethods["eth_blockNumber"].Result.Response, "provider2 should have correct failed response")
 	})
 
 	t.Run("failed methods tracking", func(t *testing.T) {
 		results := make(map[int64]map[string]ProviderValidationResult)
 		runner.validateChains(context.Background(), results)
 
-		assert.Contains(t, results, int64(1))
+		assert.Contains(t, results, int64(1), "should have results for chain ID 1")
 
 		chainResults := results[1]
-		assert.Contains(t, chainResults, "provider1")
-		assert.True(t, chainResults["provider1"].Valid)
-		assert.Contains(t, chainResults, "provider2")
-		assert.False(t, chainResults["provider2"].Valid)
-		assert.Contains(t, chainResults["provider2"].FailedMethods, "eth_blockNumber")
+		assert.Contains(t, chainResults, "provider1", "should have results for provider1")
+		assert.True(t, chainResults["provider1"].Valid, "provider1 should be valid")
+		assert.Contains(t, chainResults, "provider2", "should have results for provider2")
+		assert.False(t, chainResults["provider2"].Valid, "provider2 should be invalid")
+		assert.Contains(t, chainResults["provider2"].FailedMethods, "eth_blockNumber", "should track failed eth_blockNumber method")
 	})
 }

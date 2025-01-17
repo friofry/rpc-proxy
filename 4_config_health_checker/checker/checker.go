@@ -28,7 +28,7 @@ type MultiMethodTestResult struct {
 func TestEVMMethodWithCaller(
 	ctx context.Context,
 	config EVMMethodTestConfig,
-	caller EVMMethodCaller,
+	caller requestsrunner.EVMMethodCaller,
 	providers []rpcprovider.RpcProvider,
 	referenceProvider rpcprovider.RpcProvider,
 	timeout time.Duration,
@@ -108,7 +108,7 @@ type CheckResult struct {
 func TestMultipleEVMMethods(
 	ctx context.Context,
 	methodConfigs []EVMMethodTestConfig, // list of method configs
-	caller EVMMethodCaller,
+	caller requestsrunner.EVMMethodCaller,
 	providers []rpcprovider.RpcProvider,
 	referenceProvider rpcprovider.RpcProvider,
 	timeout time.Duration,
@@ -168,7 +168,7 @@ func handleReferenceParseError(results map[string]requestsrunner.ProviderResult,
 func ValidateMultipleEVMMethods(
 	ctx context.Context,
 	methodConfigs []EVMMethodTestConfig,
-	caller EVMMethodCaller,
+	caller requestsrunner.EVMMethodCaller,
 	providers []rpcprovider.RpcProvider,
 	referenceProvider rpcprovider.RpcProvider,
 	timeout time.Duration,
