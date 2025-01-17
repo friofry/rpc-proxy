@@ -190,11 +190,6 @@ func NewRequestsRunner() *RequestsRunner {
 	return &RequestsRunner{}
 }
 
-// EVMMethodCaller defines the interface for calling EVM methods
-type EVMMethodCaller interface {
-	CallEVMMethod(ctx context.Context, provider rpcprovider.RpcProvider, method string, params []interface{}, timeout time.Duration) ProviderResult
-}
-
 // ParallelCallEVMMethods executes EVM methods in parallel across multiple providers
 func ParallelCallEVMMethods(
 	ctx context.Context,
