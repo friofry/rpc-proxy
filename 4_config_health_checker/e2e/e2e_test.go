@@ -114,47 +114,6 @@ func TestE2E(t *testing.T) {
 }
 
 func (s *E2ETestSuite) TestE2E() {
-	// Create test configuration
-	cfg := configreader.CheckerConfig{
-		IntervalSeconds:        1,
-		DefaultProvidersPath:   filepath.Join(testTempDir, "default_providers.json"),
-		ReferenceProvidersPath: filepath.Join(testTempDir, "reference_providers.json"),
-		OutputProvidersPath:    filepath.Join(testTempDir, "output_providers.json"),
-	}
-
-	// Write config to file
-	configPath := filepath.Join(testTempDir, testConfigFile)
-	configBytes, err := json.Marshal(cfg)
-	s.NoError(err)
-	err = os.WriteFile(configPath, configBytes, 0644)
-	s.NoError(err)
-
-	// Create default providers file
-	defaultProviders := map[string]interface{}{
-		"test-provider": map[string]interface{}{
-			"name":     "Test Provider",
-			"url":      "http://localhost:8545",
-			"authType": "no-auth",
-		},
-	}
-	defaultProvidersBytes, err := json.Marshal(defaultProviders)
-	s.NoError(err)
-	err = os.WriteFile(cfg.DefaultProvidersPath, defaultProvidersBytes, 0644)
-	s.NoError(err)
-
-	// Create reference providers file
-	referenceProviders := map[string]interface{}{
-		"test-provider": map[string]interface{}{
-			"name":     "Test Provider",
-			"url":      "http://localhost:8545",
-			"authType": "no-auth",
-		},
-	}
-	referenceProvidersBytes, err := json.Marshal(referenceProviders)
-	s.NoError(err)
-	err = os.WriteFile(cfg.ReferenceProvidersPath, referenceProvidersBytes, 0644)
-	s.NoError(err)
-
 	// Start application
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -164,9 +123,9 @@ func (s *E2ETestSuite) TestE2E() {
 
 	// Create periodic task
 	validationTask := periodictask.New(
-		time.Duration(cfg.IntervalSeconds)*time.Second,
+		time.Duration(s.cfg.IntervalSeconds)*time.Second,
 		func() {
-			runner, err := checker.NewRunnerFromConfig(cfg, caller)
+			runner, err := checker.NewRunnerFromConfig(s.cfg, caller)
 			if err != nil {
 				fmt.Printf("failed to create runner: %v\n", err)
 				return
@@ -176,7 +135,7 @@ func (s *E2ETestSuite) TestE2E() {
 	)
 
 	// Start HTTP server
-	server := confighttpserver.New(testPort, cfg.DefaultProvidersPath)
+	server := confighttpserver.New(testPort, s.cfg.OutputProvidersPath)
 	serverDone := make(chan error)
 	go func() {
 		serverDone <- server.Start()
