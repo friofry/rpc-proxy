@@ -146,20 +146,46 @@ func (c *ReferenceChainConfig) normalize() {
 }
 
 // WriteChains writes chain configurations to a JSON file
-func WriteChains(filePath string, chains []ChainConfig) error {
-	config := struct {
-		Chains []ChainConfig `json:"chains"`
-	}{
-		Chains: chains,
+func WriteChains(filePath string, config ChainsConfig) error {
+	// Validate each chain configuration
+	for _, chain := range config.Chains {
+		if err := validateChainConfig(chain); err != nil {
+			return fmt.Errorf("invalid chain configuration: %w", err)
+		}
 	}
 
+	// Marshal to JSON with indentation
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal chains: %w", err)
 	}
 
+	// Write to file with proper permissions
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write chains file: %w", err)
+	}
+
+	return nil
+}
+
+// WriteReferenceChains writes reference chain configurations to a JSON file
+func WriteReferenceChains(filePath string, config ReferenceChainsConfig) error {
+	// Validate each reference chain configuration
+	for _, chain := range config.Chains {
+		if err := validateReferenceChainConfig(chain); err != nil {
+			return fmt.Errorf("invalid reference chain configuration: %w", err)
+		}
+	}
+
+	// Marshal to JSON with indentation
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal reference chains: %w", err)
+	}
+
+	// Write to file with proper permissions
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write reference chains file: %w", err)
 	}
 
 	return nil

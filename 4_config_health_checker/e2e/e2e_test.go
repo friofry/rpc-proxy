@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/friofry/config-health-checker/chainconfig"
 	"github.com/friofry/config-health-checker/checker"
 	"github.com/friofry/config-health-checker/confighttpserver"
 	"github.com/friofry/config-health-checker/configreader"
@@ -47,27 +48,47 @@ func (s *E2ETestSuite) SetupSuite() {
 		OutputProvidersPath:    filepath.Join(testTempDir, "output_providers.json"),
 	}
 
-	// Write default providers
-	defaultProviders := []rpcprovider.RpcProvider{
-		{
-			Name:     "test-provider",
-			URL:      "http://localhost:8545",
-			AuthType: "no-auth",
+	// Write default providers using ChainsConfig
+	defaultChains := chainconfig.ChainsConfig{
+		Chains: []chainconfig.ChainConfig{
+			{
+				Name:    "test-chain",
+				Network: "testnet",
+				ChainId: 1,
+				Providers: []rpcprovider.RpcProvider{
+					{
+						Name:     "test-provider",
+						URL:      "http://localhost:8545",
+						AuthType: "no-auth",
+					},
+				},
+			},
 		},
 	}
-	defaultData := map[string]interface{}{"chains": defaultProviders}
-	s.writeJSONFile(s.cfg.DefaultProvidersPath, defaultData)
+	err = chainconfig.WriteChains(s.cfg.DefaultProvidersPath, defaultChains)
+	if err != nil {
+		s.FailNow("failed to write default providers", err)
+	}
 
-	// Write reference providers
-	referenceProviders := []rpcprovider.RpcProvider{
-		{
-			Name:     "test-provider",
-			URL:      "http://localhost:8545",
-			AuthType: "no-auth",
+	// Write reference providers using ReferenceChainsConfig
+	referenceChains := chainconfig.ReferenceChainsConfig{
+		Chains: []chainconfig.ReferenceChainConfig{
+			{
+				Name:    "test-chain",
+				Network: "testnet",
+				ChainId: 1,
+				Provider: rpcprovider.RpcProvider{
+					Name:     "test-provider",
+					URL:      "http://localhost:8545",
+					AuthType: "no-auth",
+				},
+			},
 		},
 	}
-	referenceData := map[string]interface{}{"chains": referenceProviders}
-	s.writeJSONFile(s.cfg.ReferenceProvidersPath, referenceData)
+	err = chainconfig.WriteReferenceChains(s.cfg.ReferenceProvidersPath, referenceChains)
+	if err != nil {
+		s.FailNow("failed to write reference providers", err)
+	}
 
 	// Write checker config
 	s.writeJSONFile(filepath.Join(testTempDir, testConfigFile), s.cfg)

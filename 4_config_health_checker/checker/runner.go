@@ -145,7 +145,7 @@ func (r *ChainValidationRunner) findProviderByName(
 // writeValidChains writes valid chains to output file if path is specified
 func (r *ChainValidationRunner) writeValidChains(validChains []chainconfig.ChainConfig) {
 	if r.outputProvidersPath != "" {
-		if err := chainconfig.WriteChains(r.outputProvidersPath, validChains); err != nil {
+		if err := chainconfig.WriteChains(r.outputProvidersPath, chainconfig.ChainsConfig{Chains: validChains}); err != nil {
 			fmt.Printf("Failed to write valid providers: %v\n", err)
 		}
 	}
