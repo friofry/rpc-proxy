@@ -262,7 +262,7 @@ func TestParallelCallEVMMethods(t *testing.T) {
 			result, exists := results[provider.Name]
 			assert.True(t, exists)
 			assert.True(t, result.Success)
-			assert.Equal(t, `{"jsonrpc":"2.0","result":"0x1"}`, result.Response)
+			assert.Equal(t, "0x1", result.Response)
 			assert.Nil(t, result.Error)
 		}
 	})
@@ -396,7 +396,7 @@ func TestCallEVMMethod(t *testing.T) {
 				w.Write([]byte(`{"jsonrpc":"2.0","result":"0x1"}`))
 			},
 			wantSuccess:  true,
-			wantResponse: `{"jsonrpc":"2.0","result":"0x1"}`,
+			wantResponse: "0x1",
 		},
 		{
 			name: "Successful BasicAuth request",
@@ -419,7 +419,7 @@ func TestCallEVMMethod(t *testing.T) {
 				w.Write([]byte(`{"jsonrpc":"2.0","result":"0x100"}`))
 			},
 			wantSuccess:  true,
-			wantResponse: `{"jsonrpc":"2.0","result":"0x100"}`,
+			wantResponse: "0x100",
 		},
 		{
 			name: "Successful TokenAuth request",
@@ -451,7 +451,7 @@ func TestCallEVMMethod(t *testing.T) {
 				w.Write([]byte(`{"jsonrpc":"2.0","result":"0x1"}`))
 			},
 			wantSuccess:  true,
-			wantResponse: `{"jsonrpc":"2.0","result":"0x1"}`,
+			wantResponse: "0x1",
 		},
 		{
 			name: "Server error response",
@@ -481,8 +481,7 @@ func TestCallEVMMethod(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`invalid json`))
 			},
-			wantSuccess:  true,
-			wantResponse: "invalid json",
+			wantSuccess: false,
 		},
 	}
 

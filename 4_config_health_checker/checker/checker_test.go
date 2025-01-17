@@ -46,7 +46,7 @@ func TestValidateMultipleEVMMethods(t *testing.T) {
 			},
 			"providerA": {
 				Success:     true,
-				Response:    `{"result":"0x65"}`,
+				Response:    `{"result":"0x64"}`,
 				ElapsedTime: 100 * time.Millisecond,
 			},
 			"providerB": {
@@ -115,7 +115,7 @@ func TestValidateMultipleEVMMethods(t *testing.T) {
 				},
 				"providerA": {
 					Success:  true,
-					Response: `{"result":"0x65"}`,
+					Response: `{"result":"0x64"}`,
 				},
 			},
 		}

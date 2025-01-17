@@ -94,7 +94,7 @@ func (r *RequestsRunner) CallEVMMethod(
 		}
 	}
 
-	// Read response
+	// Read and parse response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return ProviderResult{
@@ -105,10 +105,41 @@ func (r *RequestsRunner) CallEVMMethod(
 		}
 	}
 
+	// Parse JSON-RPC response
+	var jsonResponse struct {
+		Result interface{} `json:"result"`
+		Error  struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &jsonResponse); err != nil {
+		return ProviderResult{
+			Success:     false,
+			Error:       fmt.Errorf("failed to parse JSON response: %w", err),
+			Response:    "",
+			ElapsedTime: time.Since(startTime),
+		}
+	}
+
+	// Check for JSON-RPC error
+	if jsonResponse.Error.Code != 0 {
+		return ProviderResult{
+			Success:     false,
+			Error:       fmt.Errorf("JSON-RPC error: %s (code %d)", jsonResponse.Error.Message, jsonResponse.Error.Code),
+			Response:    "",
+			ElapsedTime: time.Since(startTime),
+		}
+	}
+
+	// Convert result to string
+	resultStr := fmt.Sprintf("%v", jsonResponse.Result)
+
 	return ProviderResult{
 		Success:     true,
 		Error:       nil,
-		Response:    string(body),
+		Response:    resultStr,
 		ElapsedTime: time.Since(startTime),
 	}
 }

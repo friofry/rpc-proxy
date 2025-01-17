@@ -208,7 +208,7 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 		assert.True(t, chainResults["provider1"].Valid, "provider1 should be valid")
 		assert.Contains(t, chainResults, "provider2", "should have results for provider2")
 		assert.False(t, chainResults["provider2"].Valid, "provider2 should be invalid")
-		assert.Equal(t, "0x5678", chainResults["provider2"].FailedMethods["eth_blockNumber"].Result.Response, "provider2 should have correct failed response")
+		assert.Equal(t, `{"result":"0x5678"}`, chainResults["provider2"].FailedMethods["eth_blockNumber"].Result.Response, "provider2 should have correct failed response")
 	})
 
 	t.Run("failed methods tracking", func(t *testing.T) {
