@@ -18,7 +18,7 @@ func loadChainsToMap(filePath string) (map[int64]chainconfig.ChainConfig, error)
 	}
 
 	chainMap := make(map[int64]chainconfig.ChainConfig)
-	for _, chain := range chains {
+	for _, chain := range chains.Chains {
 		chainMap[int64(chain.ChainId)] = chain
 	}
 	return chainMap, nil
@@ -31,7 +31,7 @@ func loadReferenceChainsToMap(filePath string) (map[int64]chainconfig.ReferenceC
 	}
 
 	chainMap := make(map[int64]chainconfig.ReferenceChainConfig)
-	for _, chain := range chains {
+	for _, chain := range chains.Chains {
 		chainMap[int64(chain.ChainId)] = chain
 	}
 	return chainMap, nil

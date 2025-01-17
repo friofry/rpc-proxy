@@ -11,6 +11,16 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// ChainsConfig represents a collection of chain configurations
+type ChainsConfig struct {
+	Chains []ChainConfig `json:"chains" validate:"required,dive"`
+}
+
+// ReferenceChainsConfig represents a collection of reference chain configurations
+type ReferenceChainsConfig struct {
+	Chains []ReferenceChainConfig `json:"chains" validate:"required,dive"`
+}
+
 // ChainConfig represents configuration for a blockchain network
 type ChainConfig struct {
 	Name      string                    `json:"name" validate:"required,lowercase"`
@@ -28,24 +38,25 @@ type ReferenceChainConfig struct {
 }
 
 // LoadChains loads chain configurations from a JSON file
-func LoadChains(filePath string) ([]ChainConfig, error) {
-	return loadConfig[ChainConfig](filePath, "chains")
+func LoadChains(filePath string) (ChainsConfig, error) {
+	chains, err := loadConfig[ChainConfig](filePath, "chains")
+	return ChainsConfig{Chains: chains}, err
 }
 
 // LoadReferenceChains loads reference provider configurations from a JSON file
-func LoadReferenceChains(filePath string) ([]ReferenceChainConfig, error) {
+func LoadReferenceChains(filePath string) (ReferenceChainsConfig, error) {
 	chains, err := loadConfig[ReferenceChainConfig](filePath, "chains")
 	if err != nil {
-		return nil, err
+		return ReferenceChainsConfig{}, err
 	}
 
 	for _, chain := range chains {
 		if err := validateReferenceChainConfig(chain); err != nil {
-			return nil, err
+			return ReferenceChainsConfig{}, err
 		}
 	}
 
-	return chains, nil
+	return ReferenceChainsConfig{Chains: chains}, nil
 }
 
 // validateReferenceChainConfig validates required fields in reference chain configuration
