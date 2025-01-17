@@ -40,11 +40,11 @@ func TestLoadChains(t *testing.T) {
 	t.Run("successful load", func(t *testing.T) {
 		chains, err := LoadChains(tmpFile.Name())
 		assert.NoError(t, err)
-		assert.Len(t, chains, 1)
-		assert.Equal(t, "ethereum", chains[0].Name)
-		assert.Equal(t, "mainnet", chains[0].Network)
-		assert.Equal(t, 1, chains[0].ChainId)
-		assert.Len(t, chains[0].Providers, 1)
+		assert.Len(t, chains.Chains, 1)
+		assert.Equal(t, "ethereum", chains.Chains[0].Name)
+		assert.Equal(t, "mainnet", chains.Chains[0].Network)
+		assert.Equal(t, 1, chains.Chains[0].ChainId)
+		assert.Len(t, chains.Chains[0].Providers, 1)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -96,11 +96,11 @@ func TestLoadReferenceChains(t *testing.T) {
 	t.Run("successful load", func(t *testing.T) {
 		chains, err := LoadReferenceChains(tmpFile.Name())
 		assert.NoError(t, err)
-		assert.Len(t, chains, 1)
-		assert.Equal(t, "ethereum", chains[0].Name)
-		assert.Equal(t, "mainnet", chains[0].Network)
-		assert.Equal(t, 1, chains[0].ChainId)
-		assert.Equal(t, "infura", chains[0].Provider.Name)
+		assert.Len(t, chains.Chains, 1)
+		assert.Equal(t, "ethereum", chains.Chains[0].Name)
+		assert.Equal(t, "mainnet", chains.Chains[0].Network)
+		assert.Equal(t, 1, chains.Chains[0].ChainId)
+		assert.Equal(t, "infura", chains.Chains[0].Provider.Name)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -162,9 +162,9 @@ func TestLoadReferenceChains(t *testing.T) {
 
 		chains, err := LoadReferenceChains(tmpFile.Name())
 		assert.NoError(t, err)
-		assert.Equal(t, "ethereum", chains[0].Name)
-		assert.Equal(t, "mainnet", chains[0].Network)
-		assert.Equal(t, 1, chains[0].ChainId)
+		assert.Equal(t, "ethereum", chains.Chains[0].Name)
+		assert.Equal(t, "mainnet", chains.Chains[0].Network)
+		assert.Equal(t, 1, chains.Chains[0].ChainId)
 	})
 }
 
