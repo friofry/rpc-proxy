@@ -61,7 +61,22 @@ func (s *E2ETestSuite) SetupSuite() {
 	referenceProviders := make([]rpcprovider.RpcProvider, 0)
 
 	// Create mock servers for default providers
-	responses := map[string]map[string]interface{}{
+	// Responses for first default provider (different from reference)
+	firstProviderResponses := map[string]map[string]interface{}{
+		"eth_blockNumber": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x654321",
+		},
+		"eth_getBalance": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x2000000000000000000",
+		},
+	}
+
+	// Responses for reference provider
+	referenceResponses := map[string]map[string]interface{}{
 		"eth_blockNumber": {
 			"jsonrpc": "2.0",
 			"id":      1,
@@ -75,15 +90,29 @@ func (s *E2ETestSuite) SetupSuite() {
 	}
 
 	// First default provider
-	s.providerSetup.AddProvider(basePort, responses)
+	s.providerSetup.AddProvider(basePort, firstProviderResponses)
 	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
 		Name:     "testprovider1",
 		URL:      fmt.Sprintf("http://localhost:%d", basePort),
 		AuthType: "no-auth",
 	})
 
+	// Responses for second default provider
+	secondProviderResponses := map[string]map[string]interface{}{
+		"eth_blockNumber": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x987654",
+		},
+		"eth_getBalance": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x3000000000000000000",
+		},
+	}
+
 	// Second default provider
-	s.providerSetup.AddProvider(basePort+2, responses)
+	s.providerSetup.AddProvider(basePort+2, secondProviderResponses)
 	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
 		Name:     "testprovider2",
 		URL:      fmt.Sprintf("http://localhost:%d", basePort+2),
@@ -91,7 +120,7 @@ func (s *E2ETestSuite) SetupSuite() {
 	})
 
 	// Create mock server for reference provider
-	s.providerSetup.AddProvider(basePort+1, responses)
+	s.providerSetup.AddProvider(basePort+1, referenceResponses)
 	referenceProviders = append(referenceProviders, rpcprovider.RpcProvider{
 		Name:     "reference-testprovider",
 		URL:      fmt.Sprintf("http://localhost:%d", basePort+1),
