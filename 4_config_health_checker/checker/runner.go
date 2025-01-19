@@ -84,10 +84,10 @@ func (r *ChainValidationRunner) validateChains(ctx context.Context, results map[
 			results[chainId] = chainResults
 
 			if validProviders := r.getValidProviders(chainCfg, chainResults); len(validProviders) > 0 {
-				validChains = append(validChains, chainconfig.ChainConfig{
-					ChainId:   chainCfg.ChainId,
-					Providers: validProviders,
-				})
+				// Create a copy of the original chain config and update providers
+				validChain := chainCfg
+				validChain.Providers = validProviders
+				validChains = append(validChains, validChain)
 			}
 		}
 	}

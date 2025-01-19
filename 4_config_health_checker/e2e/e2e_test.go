@@ -14,6 +14,7 @@ import (
 	"github.com/friofry/config-health-checker/checker"
 	"github.com/friofry/config-health-checker/confighttpserver"
 	"github.com/friofry/config-health-checker/configreader"
+	"github.com/friofry/config-health-checker/e2e/testutils"
 	"github.com/friofry/config-health-checker/periodictask"
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	rpcprovider "github.com/friofry/config-health-checker/rpcprovider"
@@ -22,7 +23,8 @@ import (
 
 type E2ETestSuite struct {
 	suite.Suite
-	cfg configreader.CheckerConfig
+	cfg           configreader.CheckerConfig
+	providerSetup *testutils.ProviderSetup
 }
 
 const (
@@ -40,6 +42,9 @@ func (s *E2ETestSuite) SetupSuite() {
 		s.FailNow("failed to create test directory", err)
 	}
 
+	// Initialize provider setup
+	s.providerSetup = testutils.NewProviderSetup()
+
 	// Create test config files
 	s.cfg = configreader.CheckerConfig{
 		IntervalSeconds:        1,
@@ -48,20 +53,40 @@ func (s *E2ETestSuite) SetupSuite() {
 		OutputProvidersPath:    filepath.Join(testTempDir, "output_providers.json"),
 	}
 
+	// Create mock servers and update provider URLs
+	basePort := 8545
+	defaultProviders := make([]rpcprovider.RpcProvider, 0)
+	referenceProviders := make([]rpcprovider.RpcProvider, 0)
+
+	// Create mock server for default provider
+	s.providerSetup.AddProvider(basePort)
+	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
+		Name:     "testprovider",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort),
+		AuthType: "no-auth",
+	})
+
+	// Create mock server for reference provider
+	s.providerSetup.AddProvider(basePort + 1)
+	referenceProviders = append(referenceProviders, rpcprovider.RpcProvider{
+		Name:     "reference-testprovider",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort+1),
+		AuthType: "no-auth",
+	})
+
+	// Start all mock servers
+	if err := s.providerSetup.StartAll(); err != nil {
+		s.FailNow("failed to start mock servers", err)
+	}
+
 	// Write default providers using ChainsConfig
 	defaultChains := chainconfig.ChainsConfig{
 		Chains: []chainconfig.ChainConfig{
 			{
-				Name:    "test-chain",
-				Network: "testnet",
-				ChainId: 1,
-				Providers: []rpcprovider.RpcProvider{
-					{
-						Name:     "test-provider",
-						URL:      "http://localhost:8545",
-						AuthType: "no-auth",
-					},
-				},
+				Name:      "testchain",
+				Network:   "testnet",
+				ChainId:   1,
+				Providers: defaultProviders,
 			},
 		},
 	}
@@ -74,14 +99,10 @@ func (s *E2ETestSuite) SetupSuite() {
 	referenceChains := chainconfig.ReferenceChainsConfig{
 		Chains: []chainconfig.ReferenceChainConfig{
 			{
-				Name:    "test-chain",
-				Network: "testnet",
-				ChainId: 1,
-				Provider: rpcprovider.RpcProvider{
-					Name:     "test-provider",
-					URL:      "http://localhost:8545",
-					AuthType: "no-auth",
-				},
+				Name:     "testchain",
+				Network:  "testnet",
+				ChainId:  1,
+				Provider: referenceProviders[0],
 			},
 		},
 	}
@@ -95,6 +116,10 @@ func (s *E2ETestSuite) SetupSuite() {
 }
 
 func (s *E2ETestSuite) TearDownSuite() {
+	// Stop all mock servers
+	if err := s.providerSetup.StopAll(); err != nil {
+		s.T().Logf("error stopping mock servers: %v", err)
+	}
 	os.RemoveAll(testTempDir)
 }
 
@@ -148,7 +173,23 @@ func (s *E2ETestSuite) TestE2E() {
 	// Wait for first run to complete
 	time.Sleep(2 * time.Second)
 
-	// Test HTTP endpoint
+	// Test provider connectivity
+	s.Run("Test provider is accessible", func() {
+		// Test default provider
+		client := &http.Client{Timeout: 1 * time.Second}
+		_, err := client.Get("http://localhost:8545")
+		if err != nil {
+			s.Fail("default provider not accessible", err)
+		}
+
+		// Test reference provider
+		_, err = client.Get("http://localhost:8546")
+		if err != nil {
+			s.Fail("reference provider not accessible", err)
+		}
+	})
+
+	// Test HTTP API endpoint
 	s.Run("HTTP API returns providers", func() {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%s/providers", testPort))
 		s.NoError(err)
@@ -163,10 +204,11 @@ func (s *E2ETestSuite) TestE2E() {
 	})
 
 	// Cleanup server
+	server.Stop()
 	cancel()
 	select {
 	case err := <-serverDone:
-		if err != nil {
+		if err != nil && err != http.ErrServerClosed {
 			s.T().Logf("server stopped with error: %v", err)
 		}
 	case <-time.After(shutdownTimeout):

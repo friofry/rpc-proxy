@@ -1,6 +1,7 @@
 package confighttpserver
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -15,21 +16,38 @@ type Provider struct {
 type Server struct {
 	port          string
 	providersPath string
+	server        *http.Server
 }
 
 func New(port, providersPath string) *Server {
-	return &Server{
+	mux := http.NewServeMux()
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
+	}
+
+	s := &Server{
 		port:          port,
 		providersPath: providersPath,
+		server:        srv,
 	}
+
+	mux.HandleFunc("/providers", s.providersHandler)
+	mux.HandleFunc("/health", s.healthHandler)
+
+	return s
 }
 
 func (s *Server) Start() error {
-	http.HandleFunc("/providers", s.providersHandler)
-	http.HandleFunc("/health", s.healthHandler)
-
 	log.Printf("starting config HTTP server on :%s", s.port)
-	return http.ListenAndServe(":"+s.port, nil)
+	return s.server.ListenAndServe()
+}
+
+func (s *Server) Stop() error {
+	if s.server == nil {
+		return nil
+	}
+	return s.server.Shutdown(context.Background())
 }
 
 func (s *Server) providersHandler(w http.ResponseWriter, r *http.Request) {
