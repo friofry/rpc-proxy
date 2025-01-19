@@ -42,17 +42,17 @@ func TestValidateMultipleEVMMethods(t *testing.T) {
 		Responses: map[string]requestsrunner.ProviderResult{
 			"reference": {
 				Success:     true,
-				Response:    `{"result":"0x64"}`,
+				Response:    []byte(`{"result":"0x64"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 			"providerA": {
 				Success:     true,
-				Response:    `{"result":"0x64"}`,
+				Response:    []byte(`{"result":"0x64"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 			"providerB": {
 				Success:     true,
-				Response:    `{"result":"0x6e"}`,
+				Response:    []byte(`{"result":"0x6e"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 		},
@@ -116,7 +116,7 @@ func TestValidateMultipleEVMMethods(t *testing.T) {
 				},
 				"providerA": {
 					Success:  true,
-					Response: `{"result":"0x64"}`,
+					Response: []byte(`{"result":"0x64"}`),
 				},
 			},
 		}
@@ -141,18 +141,18 @@ func TestValidateMultipleEVMMethods(t *testing.T) {
 			Responses: map[string]requestsrunner.ProviderResult{
 				"reference": {
 					Success:  true,
-					Response: `{"result":"0x64"}`,
+					Response: []byte(`{"result":"0x64"}`),
 				},
 				"providerA": {
 					Success:  true,
-					Response: `{"result":"0x65"}`,
+					Response: []byte(`{"result":"0x65"}`),
 				},
 			},
 			MethodResponses: map[string]map[string]requestsrunner.ProviderResult{
 				"providerA": {
 					"eth_blockNumber": {
 						Success:  true,
-						Response: `{"result":"0x65"}`,
+						Response: []byte(`{"result":"0x65"}`),
 					},
 					"eth_chainId": {
 						Success: false,
@@ -192,7 +192,7 @@ func TestFailedMethodResultResponse(t *testing.T) {
 		Responses: map[string]requestsrunner.ProviderResult{
 			"testProvider": {
 				Success:     true,
-				Response:    `{"result":"test response"}`,
+				Response:    []byte(`{"result":"test response"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 		},
