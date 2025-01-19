@@ -10,6 +10,7 @@ type CheckerConfig struct {
 	DefaultProvidersPath   string `json:"default_providers_path"`
 	ReferenceProvidersPath string `json:"reference_providers_path"`
 	OutputProvidersPath    string `json:"output_providers_path"`
+	TestsConfigPath        string `json:"tests_config_path"`
 }
 
 // ReadConfig reads and validates the configuration from checker_config.json
@@ -36,6 +37,9 @@ func ReadConfig(path string) (*CheckerConfig, error) {
 	}
 	if config.OutputProvidersPath == "" {
 		config.OutputProvidersPath = "providers.json"
+	}
+	if config.TestsConfigPath == "" {
+		config.TestsConfigPath = "tests_config.json"
 	}
 
 	return &config, nil
