@@ -10,23 +10,21 @@ import (
 
 // MockRPCServer represents a mock RPC server for testing
 type MockRPCServer struct {
-	Port          int
-	Handler       http.Handler
-	server        *http.Server
-	wg            sync.WaitGroup
-	responses     []map[string]interface{}
-	mu            sync.Mutex
-	responseIndex int
+	Port      int
+	Handler   http.Handler
+	server    *http.Server
+	wg        sync.WaitGroup
+	responses map[string]map[string]interface{} // method name -> response
+	mu        sync.Mutex
 }
 
 // NewMockRPCServer creates a new mock RPC server
 func NewMockRPCServer(port int) *MockRPCServer {
 	mux := http.NewServeMux()
 	server := &MockRPCServer{
-		Port:          port,
-		Handler:       mux,
-		responses:     make([]map[string]interface{}, 0),
-		responseIndex: 0,
+		Port:      port,
+		Handler:   mux,
+		responses: make(map[string]map[string]interface{}),
 	}
 
 	// Setup default RPC endpoints
@@ -35,19 +33,18 @@ func NewMockRPCServer(port int) *MockRPCServer {
 	return server
 }
 
-// AddResponse adds a response to the response queue
-func (s *MockRPCServer) AddResponse(response map[string]interface{}) {
+// AddResponse adds a response for a specific method
+func (s *MockRPCServer) AddResponse(method string, response map[string]interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.responses = append(s.responses, response)
+	s.responses[method] = response
 }
 
 // ClearResponses clears all responses
 func (s *MockRPCServer) ClearResponses() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.responses = make([]map[string]interface{}, 0)
-	s.responseIndex = 0
+	s.responses = make(map[string]map[string]interface{})
 }
 
 // Start starts the mock RPC server
@@ -92,6 +89,15 @@ func (s *MockRPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request)
 		writeError(w, -32700, "Parse error", nil)
 		return
 	}
+
+	// Check for predefined response first
+	s.mu.Lock()
+	if response, exists := s.responses[request.Method]; exists {
+		s.mu.Unlock()
+		writeSuccess(w, request.ID, response)
+		return
+	}
+	s.mu.Unlock()
 
 	// Handle different methods
 	switch request.Method {
