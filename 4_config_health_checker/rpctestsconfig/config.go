@@ -75,3 +75,18 @@ func ValidateConfig(configs []EVMMethodTestConfig) error {
 
 	return nil
 }
+
+// WriteConfig writes the given EVM method test configuration to a JSON file
+func WriteConfig(path string, configs []EVMMethodTestJSON) error {
+	bytes, err := json.MarshalIndent(configs, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	err = os.WriteFile(path, bytes, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
+}

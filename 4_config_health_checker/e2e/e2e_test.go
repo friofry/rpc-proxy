@@ -18,6 +18,7 @@ import (
 	"github.com/friofry/config-health-checker/periodictask"
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	rpcprovider "github.com/friofry/config-health-checker/rpcprovider"
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -51,6 +52,7 @@ func (s *E2ETestSuite) SetupSuite() {
 		DefaultProvidersPath:   filepath.Join(testTempDir, "default_providers.json"),
 		ReferenceProvidersPath: filepath.Join(testTempDir, "reference_providers.json"),
 		OutputProvidersPath:    filepath.Join(testTempDir, "output_providers.json"),
+		TestsConfigPath:        filepath.Join(testTempDir, "test_config.json"),
 	}
 
 	// Create mock servers and update provider URLs
@@ -109,6 +111,23 @@ func (s *E2ETestSuite) SetupSuite() {
 	err = chainconfig.WriteReferenceChains(s.cfg.ReferenceProvidersPath, referenceChains)
 	if err != nil {
 		s.FailNow("failed to write reference providers", err)
+	}
+
+	// Write test methods
+	testMethods := []rpctestsconfig.EVMMethodTestJSON{
+		{
+			Method:        "eth_blockNumber",
+			MaxDifference: "0",
+		},
+		{
+			Method:        "eth_getBalance",
+			Params:        []interface{}{"0x0000000000000000000000000000000000000000", "latest"},
+			MaxDifference: "0",
+		},
+	}
+	err = rpctestsconfig.WriteConfig(filepath.Join(testTempDir, "test_methods.json"), testMethods)
+	if err != nil {
+		s.FailNow("failed to write test methods", err)
 	}
 
 	// Write checker config
