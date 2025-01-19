@@ -52,7 +52,7 @@ func (s *E2ETestSuite) SetupSuite() {
 		DefaultProvidersPath:   filepath.Join(testTempDir, "default_providers.json"),
 		ReferenceProvidersPath: filepath.Join(testTempDir, "reference_providers.json"),
 		OutputProvidersPath:    filepath.Join(testTempDir, "output_providers.json"),
-		TestsConfigPath:        filepath.Join(testTempDir, "test_config.json"),
+		TestsConfigPath:        filepath.Join(testTempDir, "test_methods.json"),
 	}
 
 	// Create mock servers and update provider URLs
@@ -117,6 +117,7 @@ func (s *E2ETestSuite) SetupSuite() {
 	testMethods := []rpctestsconfig.EVMMethodTestJSON{
 		{
 			Method:        "eth_blockNumber",
+			Params:        []interface{}{}, // Explicit empty array instead of null
 			MaxDifference: "0",
 		},
 		{

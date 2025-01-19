@@ -13,7 +13,8 @@ import (
 type ProviderResult struct {
 	Success     bool          // Indicates if the request was successful
 	Error       error         // Error if the request failed
-	Response    string        // Response from the provider (if successful)
+	Response    []byte        // Response from the provider
+	Result      string        // Result from the provider (if successful)
 	ElapsedTime time.Duration // Duration taken to perform the request
 }
 
@@ -66,7 +67,7 @@ func ParallelCheckProviders(ctx context.Context, providers []rpcprovider.RpcProv
 				resultsChan <- struct {
 					name   string
 					result ProviderResult
-				}{name: p.Name, result: ProviderResult{Success: false, Error: ctx.Err(), Response: ""}}
+				}{name: p.Name, result: ProviderResult{Success: false, Error: ctx.Err()}}
 			}
 		}(provider)
 	}

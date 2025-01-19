@@ -212,12 +212,12 @@ type FailedMethodResult struct {
 }
 
 // parseJSONRPCResult extracts the numeric result from a JSON-RPC response
-func parseJSONRPCResult(response string) (*big.Int, error) {
+func parseJSONRPCResult(response []byte) (*big.Int, error) {
 	var jsonResponse struct {
 		Result string `json:"result"`
 	}
 
-	if err := json.Unmarshal([]byte(response), &jsonResponse); err != nil {
+	if err := json.Unmarshal(response, &jsonResponse); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON-RPC response: %w", err)
 	}
 

@@ -44,7 +44,6 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("failed to marshal request body: %w", err),
-			Response:    "",
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -56,7 +55,6 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("failed to create request: %w", err),
-			Response:    "",
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -78,7 +76,6 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("request failed: %w", err),
-			Response:    "",
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -89,7 +86,6 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("unexpected status code: %d", resp.StatusCode),
-			Response:    "",
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -100,7 +96,6 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("failed to read response: %w", err),
-			Response:    "",
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -118,7 +113,6 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("failed to parse JSON response: %w", err),
-			Response:    "",
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -128,7 +122,7 @@ func (r *RequestsRunner) CallEVMMethod(
 		return ProviderResult{
 			Success:     false,
 			Error:       fmt.Errorf("JSON-RPC error: %s (code %d)", jsonResponse.Error.Message, jsonResponse.Error.Code),
-			Response:    "",
+			Response:    body,
 			ElapsedTime: time.Since(startTime),
 		}
 	}
@@ -139,7 +133,8 @@ func (r *RequestsRunner) CallEVMMethod(
 	return ProviderResult{
 		Success:     true,
 		Error:       nil,
-		Response:    resultStr,
+		Result:      resultStr,
+		Response:    body,
 		ElapsedTime: time.Since(startTime),
 	}
 }
