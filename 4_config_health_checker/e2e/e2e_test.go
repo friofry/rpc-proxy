@@ -61,7 +61,19 @@ func (s *E2ETestSuite) SetupSuite() {
 	referenceProviders := make([]rpcprovider.RpcProvider, 0)
 
 	// Create mock server for default provider
-	s.providerSetup.AddProvider(basePort)
+	responses := map[string]map[string]interface{}{
+		"eth_blockNumber": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x123456",
+		},
+		"eth_getBalance": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "0x1000000000000000000",
+		},
+	}
+	s.providerSetup.AddProvider(basePort, responses)
 	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
 		Name:     "testprovider",
 		URL:      fmt.Sprintf("http://localhost:%d", basePort),
@@ -69,7 +81,7 @@ func (s *E2ETestSuite) SetupSuite() {
 	})
 
 	// Create mock server for reference provider
-	s.providerSetup.AddProvider(basePort + 1)
+	s.providerSetup.AddProvider(basePort+1, responses)
 	referenceProviders = append(referenceProviders, rpcprovider.RpcProvider{
 		Name:     "reference-testprovider",
 		URL:      fmt.Sprintf("http://localhost:%d", basePort+1),

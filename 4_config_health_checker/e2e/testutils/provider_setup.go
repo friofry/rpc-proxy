@@ -18,10 +18,10 @@ func NewProviderSetup() *ProviderSetup {
 }
 
 // AddProvider adds a new mock provider
-func (p *ProviderSetup) AddProvider(port int, responses ...map[string]interface{}) *MockRPCServer {
+func (p *ProviderSetup) AddProvider(port int, responses map[string]map[string]interface{}) *MockRPCServer {
 	server := NewMockRPCServer(port)
-	for _, response := range responses {
-		server.AddResponse(response)
+	for method, response := range responses {
+		server.AddResponse(method, response)
 	}
 	p.servers = append(p.servers, server)
 	return server

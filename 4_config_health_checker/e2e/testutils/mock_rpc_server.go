@@ -94,7 +94,8 @@ func (s *MockRPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request)
 	s.mu.Lock()
 	if response, exists := s.responses[request.Method]; exists {
 		s.mu.Unlock()
-		writeSuccess(w, request.ID, response)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 	s.mu.Unlock()
