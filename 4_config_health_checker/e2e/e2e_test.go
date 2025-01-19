@@ -131,6 +131,14 @@ func (s *E2ETestSuite) SetupSuite() {
 		AuthType: "no-auth",
 	})
 
+	// Fourth default provider that returns 404
+	s.providerSetup.Add404Provider(basePort + 6)
+	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
+		Name:     "testprovider4",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort+6),
+		AuthType: "no-auth",
+	})
+
 	// Create mock server for reference provider
 	s.providerSetup.AddProvider(basePort+1, referenceResponses)
 	referenceProviders = append(referenceProviders, rpcprovider.RpcProvider{
@@ -284,6 +292,13 @@ func (s *E2ETestSuite) TestE2E() {
 		if err != nil {
 			s.Fail("third default provider not accessible", err)
 		}
+
+		// Test fourth default provider (404)
+		resp, err := client.Get("http://localhost:8551")
+		if err != nil {
+			s.Fail("fourth default provider not accessible", err)
+		}
+		s.Equal(http.StatusNotFound, resp.StatusCode)
 	})
 
 	// Test HTTP API endpoint
