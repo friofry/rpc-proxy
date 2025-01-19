@@ -5,19 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"math/big"
 	"time"
 
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	"github.com/friofry/config-health-checker/rpcprovider"
 )
-
-// EVMMethodTestConfig contains configuration for testing an EVM method
-type EVMMethodTestConfig struct {
-	Method      string
-	Params      []interface{}
-	CompareFunc func(reference, result *big.Int) bool
-}
 
 // MultiMethodTestResult contains results for multiple method tests
 type MultiMethodTestResult struct {
@@ -27,7 +21,7 @@ type MultiMethodTestResult struct {
 // TestEVMMethodWithCaller tests a single EVM method
 func TestEVMMethodWithCaller(
 	ctx context.Context,
-	config EVMMethodTestConfig,
+	config rpctestsconfig.EVMMethodTestConfig,
 	caller requestsrunner.EVMMethodCaller,
 	providers []rpcprovider.RpcProvider,
 	referenceProvider rpcprovider.RpcProvider,
@@ -106,7 +100,7 @@ type CheckResult struct {
 // TestMultipleEVMMethods runs multiple EVM method tests and returns results per provider per method
 func TestMultipleEVMMethods(
 	ctx context.Context,
-	methodConfigs []EVMMethodTestConfig, // list of method configs
+	methodConfigs []rpctestsconfig.EVMMethodTestConfig, // list of method configs
 	caller requestsrunner.EVMMethodCaller,
 	providers []rpcprovider.RpcProvider,
 	referenceProvider rpcprovider.RpcProvider,
@@ -166,7 +160,7 @@ func handleReferenceParseError(results map[string]requestsrunner.ProviderResult,
 // ValidateMultipleEVMMethods runs multiple EVM method tests and returns validation summary
 func ValidateMultipleEVMMethods(
 	ctx context.Context,
-	methodConfigs []EVMMethodTestConfig,
+	methodConfigs []rpctestsconfig.EVMMethodTestConfig,
 	caller requestsrunner.EVMMethodCaller,
 	providers []rpcprovider.RpcProvider,
 	referenceProvider rpcprovider.RpcProvider,

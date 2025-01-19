@@ -6,9 +6,14 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-
-	"github.com/friofry/config-health-checker/checker"
 )
+
+// EVMMethodTestConfig contains configuration for testing an EVM method
+type EVMMethodTestConfig struct {
+	Method      string
+	Params      []interface{}
+	CompareFunc func(reference, result *big.Int) bool
+}
 
 // EVMMethodTestJSON represents the JSON structure for EVM method test configuration
 type EVMMethodTestJSON struct {
@@ -18,7 +23,7 @@ type EVMMethodTestJSON struct {
 }
 
 // ReadConfig reads and parses the EVM method test configuration from a JSON file
-func ReadConfig(path string) ([]checker.EVMMethodTestConfig, error) {
+func ReadConfig(path string) ([]EVMMethodTestConfig, error) {
 	// Read file
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -32,7 +37,7 @@ func ReadConfig(path string) ([]checker.EVMMethodTestConfig, error) {
 	}
 
 	// Convert to EVMMethodTestConfig
-	var configs []checker.EVMMethodTestConfig
+	var configs []EVMMethodTestConfig
 	for _, cfg := range testConfigs {
 		// Parse max difference
 		maxDiff, ok := new(big.Int).SetString(cfg.MaxDifference, 10)
@@ -46,7 +51,7 @@ func ReadConfig(path string) ([]checker.EVMMethodTestConfig, error) {
 			return diff.Cmp(maxDiff) <= 0
 		}
 
-		configs = append(configs, checker.EVMMethodTestConfig{
+		configs = append(configs, EVMMethodTestConfig{
 			Method:      cfg.Method,
 			Params:      cfg.Params,
 			CompareFunc: compareFunc,
@@ -57,7 +62,7 @@ func ReadConfig(path string) ([]checker.EVMMethodTestConfig, error) {
 }
 
 // ValidateConfig validates the test configuration
-func ValidateConfig(configs []checker.EVMMethodTestConfig) error {
+func ValidateConfig(configs []EVMMethodTestConfig) error {
 	if len(configs) == 0 {
 		return errors.New("empty test configuration")
 	}

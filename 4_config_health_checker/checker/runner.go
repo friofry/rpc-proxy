@@ -9,6 +9,7 @@ import (
 	"github.com/friofry/config-health-checker/configreader"
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	"github.com/friofry/config-health-checker/rpcprovider"
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 )
 
 func loadChainsToMap(filePath string) (map[int64]chainconfig.ChainConfig, error) {
@@ -41,7 +42,7 @@ func loadReferenceChainsToMap(filePath string) (map[int64]chainconfig.ReferenceC
 type ChainValidationRunner struct {
 	chainConfigs        map[int64]chainconfig.ChainConfig
 	referenceChainCfgs  map[int64]chainconfig.ReferenceChainConfig
-	methodConfigs       []EVMMethodTestConfig
+	methodConfigs       []rpctestsconfig.EVMMethodTestConfig
 	caller              requestsrunner.EVMMethodCaller
 	timeout             time.Duration
 	outputProvidersPath string
@@ -51,7 +52,7 @@ type ChainValidationRunner struct {
 func NewChainValidationRunner(
 	chainCfgs map[int64]chainconfig.ChainConfig,
 	referenceCfgs map[int64]chainconfig.ReferenceChainConfig,
-	methodConfigs []EVMMethodTestConfig,
+	methodConfigs []rpctestsconfig.EVMMethodTestConfig,
 	caller requestsrunner.EVMMethodCaller,
 	timeout time.Duration,
 	outputProvidersPath string,
@@ -168,10 +169,16 @@ func NewRunnerFromConfig(
 		return nil, fmt.Errorf("failed to load default chains: %w", err)
 	}
 
+	// Load test configurations
+	testConfigs, err := rpctestsconfig.ReadConfig(cfg.TestsConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load test configurations: %w", err)
+	}
+
 	return NewChainValidationRunner(
 		defaultChains,
 		referenceChains,
-		nil, // MethodConfigs will need to be implemented separately
+		testConfigs,
 		caller,
 		time.Duration(cfg.IntervalSeconds)*time.Second,
 		cfg.OutputProvidersPath,

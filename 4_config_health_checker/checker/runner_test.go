@@ -3,6 +3,7 @@ package checker
 import (
 	"context"
 	"errors"
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"math/big"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ func TestChainValidationRunner_Run(t *testing.T) {
 		},
 	}
 
-	methodConfigs := []EVMMethodTestConfig{
+	methodConfigs := []rpctestsconfig.EVMMethodTestConfig{
 		{
 			Method: "eth_blockNumber",
 			CompareFunc: func(ref, res *big.Int) bool {
@@ -105,7 +106,7 @@ func TestChainValidationRunner_ReferenceProviderFailure(t *testing.T) {
 		},
 	}
 
-	methodConfigs := []EVMMethodTestConfig{
+	methodConfigs := []rpctestsconfig.EVMMethodTestConfig{
 		{
 			Method: "eth_blockNumber",
 			CompareFunc: func(ref, res *big.Int) bool {
@@ -159,7 +160,7 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 		},
 	}
 
-	methodConfigs := []EVMMethodTestConfig{
+	methodConfigs := []rpctestsconfig.EVMMethodTestConfig{
 		{
 			Method: "eth_blockNumber",
 			CompareFunc: func(ref, res *big.Int) bool {

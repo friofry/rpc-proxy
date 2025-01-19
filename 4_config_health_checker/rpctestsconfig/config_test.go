@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/friofry/config-health-checker/checker"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,17 +70,17 @@ func TestReadConfig(t *testing.T) {
 func TestValidateConfig(t *testing.T) {
 	tests := []struct {
 		name    string
-		configs []checker.EVMMethodTestConfig
+		configs []EVMMethodTestConfig
 		wantErr bool
 	}{
 		{
 			name:    "empty config",
-			configs: []checker.EVMMethodTestConfig{},
+			configs: []EVMMethodTestConfig{},
 			wantErr: true,
 		},
 		{
 			name: "valid config",
-			configs: []checker.EVMMethodTestConfig{
+			configs: []EVMMethodTestConfig{
 				{
 					Method: "eth_blockNumber",
 					CompareFunc: func(a, b *big.Int) bool {
@@ -93,7 +92,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid config - empty method",
-			configs: []checker.EVMMethodTestConfig{
+			configs: []EVMMethodTestConfig{
 				{
 					Method: "",
 					CompareFunc: func(a, b *big.Int) bool {

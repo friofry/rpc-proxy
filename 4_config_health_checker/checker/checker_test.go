@@ -3,6 +3,7 @@ package checker
 import (
 	"context"
 	"errors"
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"math/big"
 	"testing"
 	"time"
@@ -64,7 +65,7 @@ func TestValidateMultipleEVMMethods(t *testing.T) {
 	}
 
 	// Define multiple method tests
-	methodConfigs := []EVMMethodTestConfig{
+	methodConfigs := []rpctestsconfig.EVMMethodTestConfig{
 		{
 			Method:      "eth_blockNumber",
 			Params:      nil,
