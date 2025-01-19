@@ -60,7 +60,7 @@ func (s *E2ETestSuite) SetupSuite() {
 	defaultProviders := make([]rpcprovider.RpcProvider, 0)
 	referenceProviders := make([]rpcprovider.RpcProvider, 0)
 
-	// Create mock server for default provider
+	// Create mock servers for default providers
 	responses := map[string]map[string]interface{}{
 		"eth_blockNumber": {
 			"jsonrpc": "2.0",
@@ -73,10 +73,20 @@ func (s *E2ETestSuite) SetupSuite() {
 			"result":  "0x1000000000000000000",
 		},
 	}
+
+	// First default provider
 	s.providerSetup.AddProvider(basePort, responses)
 	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
-		Name:     "testprovider",
+		Name:     "testprovider1",
 		URL:      fmt.Sprintf("http://localhost:%d", basePort),
+		AuthType: "no-auth",
+	})
+
+	// Second default provider
+	s.providerSetup.AddProvider(basePort+2, responses)
+	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
+		Name:     "testprovider2",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort+2),
 		AuthType: "no-auth",
 	})
 
@@ -207,11 +217,19 @@ func (s *E2ETestSuite) TestE2E() {
 
 	// Test provider connectivity
 	s.Run("Test provider is accessible", func() {
-		// Test default provider
+		// Test default providers
 		client := &http.Client{Timeout: 1 * time.Second}
+
+		// Test first default provider
 		_, err := client.Get("http://localhost:8545")
 		if err != nil {
-			s.Fail("default provider not accessible", err)
+			s.Fail("first default provider not accessible", err)
+		}
+
+		// Test second default provider
+		_, err = client.Get("http://localhost:8547")
+		if err != nil {
+			s.Fail("second default provider not accessible", err)
 		}
 
 		// Test reference provider
