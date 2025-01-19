@@ -102,7 +102,7 @@ func (r *RequestsRunner) CallEVMMethod(
 
 	// Parse JSON-RPC response
 	var jsonResponse struct {
-		Result map[string]interface{} `json:"result"`
+		Result interface{} `json:"result"`
 		Error  struct {
 			Code    int    `json:"code"`
 			Message string `json:"message"`
@@ -128,7 +128,7 @@ func (r *RequestsRunner) CallEVMMethod(
 	}
 
 	// Convert result to string
-	resultStr := fmt.Sprintf("%v", jsonResponse.Result["result"])
+	resultStr := fmt.Sprintf("%v", jsonResponse.Result)
 
 	return ProviderResult{
 		Success:     true,

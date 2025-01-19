@@ -97,25 +97,37 @@ func (s *E2ETestSuite) SetupSuite() {
 		AuthType: "no-auth",
 	})
 
-	// Responses for second default provider
-	secondProviderResponses := map[string]map[string]interface{}{
+	// Second default provider
+	s.providerSetup.AddProvider(basePort+2, referenceResponses)
+	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
+		Name:     "testprovider2",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort+2),
+		AuthType: "no-auth",
+	})
+
+	// Third default provider that returns errors
+	errorResponses := map[string]map[string]interface{}{
 		"eth_blockNumber": {
 			"jsonrpc": "2.0",
 			"id":      1,
-			"result":  "0x987654",
+			"error": map[string]interface{}{
+				"code":    -32000,
+				"message": "server error",
+			},
 		},
 		"eth_getBalance": {
 			"jsonrpc": "2.0",
 			"id":      1,
-			"result":  "0x3000000000000000000",
+			"error": map[string]interface{}{
+				"code":    -32000,
+				"message": "server error",
+			},
 		},
 	}
-
-	// Second default provider
-	s.providerSetup.AddProvider(basePort+2, secondProviderResponses)
+	s.providerSetup.AddProvider(basePort+4, errorResponses)
 	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
-		Name:     "testprovider2",
-		URL:      fmt.Sprintf("http://localhost:%d", basePort+2),
+		Name:     "testprovider3",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort+4),
 		AuthType: "no-auth",
 	})
 
@@ -266,6 +278,12 @@ func (s *E2ETestSuite) TestE2E() {
 		if err != nil {
 			s.Fail("reference provider not accessible", err)
 		}
+
+		// Test third default provider
+		_, err = client.Get("http://localhost:8549")
+		if err != nil {
+			s.Fail("third default provider not accessible", err)
+		}
 	})
 
 	// Test HTTP API endpoint
@@ -280,6 +298,25 @@ func (s *E2ETestSuite) TestE2E() {
 		err = json.NewDecoder(resp.Body).Decode(&providers)
 		s.NoError(err)
 		s.NotEmpty(providers)
+	})
+
+	// Test output file contains second provider
+	s.Run("Output file contains second provider", func() {
+		// Read output file
+		outputBytes, err := os.ReadFile(s.cfg.OutputProvidersPath)
+		s.NoError(err)
+
+		// Parse output
+		var output chainconfig.ChainsConfig
+		err = json.Unmarshal(outputBytes, &output)
+		s.NoError(err)
+
+		// Verify second provider exists
+		s.NotEmpty(output.Chains)
+		providers := output.Chains[0].Providers
+		s.Equal(len(providers), 1)
+		s.Equal("testprovider2", providers[0].Name)
+		s.Equal("http://localhost:8547", providers[0].URL)
 	})
 
 	// Cleanup server
