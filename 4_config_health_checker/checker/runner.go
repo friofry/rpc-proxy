@@ -3,6 +3,9 @@ package checker
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/friofry/config-health-checker/chainconfig"
@@ -46,6 +49,7 @@ type ChainValidationRunner struct {
 	caller              requestsrunner.EVMMethodCaller
 	timeout             time.Duration
 	outputProvidersPath string
+	logger              *slog.Logger
 }
 
 // NewChainValidationRunner creates a new validation runner
@@ -56,7 +60,22 @@ func NewChainValidationRunner(
 	caller requestsrunner.EVMMethodCaller,
 	timeout time.Duration,
 	outputProvidersPath string,
+	logPath string,
 ) *ChainValidationRunner {
+	// Set up logging
+	var logWriter io.Writer = os.Stdout
+	if logPath != "" {
+		file, err := os.Create(logPath)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create log file: %v", err))
+		}
+		logWriter = file
+	}
+
+	logger := slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
 	return &ChainValidationRunner{
 		chainConfigs:        chainCfgs,
 		referenceChainCfgs:  referenceCfgs,
@@ -64,12 +83,14 @@ func NewChainValidationRunner(
 		caller:              caller,
 		timeout:             timeout,
 		outputProvidersPath: outputProvidersPath,
+		logger:              logger,
 	}
 }
 
 // Run executes validation across all configured chains and writes valid providers to output file
 func (r *ChainValidationRunner) Run(ctx context.Context) {
-	validChains, _ := r.validateChains(ctx)
+	validChains, results := r.validateChains(ctx)
+	r.logger.Info("validation results", "results", results)
 	r.writeValidChains(validChains)
 }
 
@@ -181,5 +202,6 @@ func NewRunnerFromConfig(
 		caller,
 		time.Duration(cfg.IntervalSeconds)*time.Second,
 		cfg.OutputProvidersPath,
+		"", // Empty log path for now
 	), nil
 }
