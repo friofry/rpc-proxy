@@ -106,54 +106,58 @@ func (c ReferenceChainConfig) Validate() error {
 	return nil
 }
 
-// LoadChains loads chain configurations from a JSON file
+// LoadChains loads and validates chain configurations from a JSON file
 func LoadChains(filePath string) (ChainsConfig, error) {
-	chains, err := loadConfig[ChainConfig](filePath, "chains")
-	return ChainsConfig{Chains: chains}, err
-}
-
-// LoadReferenceChains loads reference provider configurations from a JSON file
-func LoadReferenceChains(filePath string) (ReferenceChainsConfig, error) {
-	chains, err := loadConfig[ReferenceChainConfig](filePath, "chains")
+	file, err := os.ReadFile(filePath)
 	if err != nil {
-		return ReferenceChainsConfig{}, err
+		return ChainsConfig{}, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	for _, chain := range chains {
-		if err := chain.Validate(); err != nil {
+	var config ChainsConfig
+	if err := json.Unmarshal(file, &config); err != nil {
+		return ChainsConfig{}, fmt.Errorf("failed to parse chains config: %w", err)
+	}
+
+	if len(config.Chains) == 0 {
+		return ChainsConfig{}, errors.New("no chains configured")
+	}
+
+	// Validate and normalize each chain
+	for i := range config.Chains {
+		config.Chains[i].normalize()
+		if err := config.Chains[i].Validate(); err != nil {
+			return ChainsConfig{}, fmt.Errorf("invalid chain configuration: %w", err)
+		}
+	}
+
+	return config, nil
+}
+
+// LoadReferenceChains loads and validates reference provider configurations from a JSON file
+func LoadReferenceChains(filePath string) (ReferenceChainsConfig, error) {
+	file, err := os.ReadFile(filePath)
+	if err != nil {
+		return ReferenceChainsConfig{}, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	var config ReferenceChainsConfig
+	if err := json.Unmarshal(file, &config); err != nil {
+		return ReferenceChainsConfig{}, fmt.Errorf("failed to parse reference chains config: %w", err)
+	}
+
+	if len(config.Chains) == 0 {
+		return ReferenceChainsConfig{}, errors.New("no reference chains configured")
+	}
+
+	// Validate and normalize each reference chain
+	for i := range config.Chains {
+		config.Chains[i].normalize()
+		if err := config.Chains[i].Validate(); err != nil {
 			return ReferenceChainsConfig{}, fmt.Errorf("invalid reference chain configuration: %w", err)
 		}
 	}
 
-	return ReferenceChainsConfig{Chains: chains}, nil
-}
-
-// loadConfig is a generic function to load chain configurations
-func loadConfig[T any](filePath string, key string) ([]T, error) {
-	file, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	var config struct {
-		Chains []T `json:"chains"`
-	}
-	if err := json.Unmarshal(file, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
-	}
-
-	if len(config.Chains) == 0 {
-		return nil, errors.New("no chains configured")
-	}
-
-	// Normalize names and networks to lowercase
-	for i := range config.Chains {
-		if chain, ok := any(&config.Chains[i]).(interface{ normalize() }); ok {
-			chain.normalize()
-		}
-	}
-
-	return config.Chains, nil
+	return config, nil
 }
 
 // GetChainByNameAndNetwork finds a chain by name and network

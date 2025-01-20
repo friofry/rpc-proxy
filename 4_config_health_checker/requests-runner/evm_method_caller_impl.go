@@ -67,7 +67,7 @@ func (r *RequestsRunner) CallEVMMethod(
 	case rpcprovider.BasicAuth:
 		req.SetBasicAuth(provider.AuthLogin, provider.AuthPassword)
 	case rpcprovider.TokenAuth:
-		req.URL.RawQuery = provider.AuthToken
+		req.URL.Path += fmt.Sprintf("/%s", provider.AuthToken)
 	}
 
 	// Make the request
