@@ -139,6 +139,26 @@ func (s *E2ETestSuite) SetupSuite() {
 		AuthType: "no-auth",
 	})
 
+	// Fifth default provider that returns malformed JSON
+	malformedResponses := map[string]map[string]interface{}{
+		"eth_blockNumber": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "{invalid json",
+		},
+		"eth_getBalance": {
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  "{invalid json",
+		},
+	}
+	s.providerSetup.AddProvider(basePort+8, malformedResponses)
+	defaultProviders = append(defaultProviders, rpcprovider.RpcProvider{
+		Name:     "testprovider5",
+		URL:      fmt.Sprintf("http://localhost:%d", basePort+8),
+		AuthType: "no-auth",
+	})
+
 	// Create mock server for reference provider
 	s.providerSetup.AddProvider(basePort+1, referenceResponses)
 	referenceProviders = append(referenceProviders, rpcprovider.RpcProvider{
