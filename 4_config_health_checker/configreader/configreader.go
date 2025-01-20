@@ -20,6 +20,7 @@ type CheckerConfig struct {
 	ReferenceProvidersPath string `json:"reference_providers_path"` // Path to reference providers JSON file
 	OutputProvidersPath    string `json:"output_providers_path"`    // Path to output providers JSON file
 	TestsConfigPath        string `json:"tests_config_path"`        // Path to tests configuration JSON file
+	LogsPath               string `json:"logs_path"`                // Path to store log files
 }
 
 // ReadConfig reads and validates the configuration from the specified path
@@ -47,6 +48,7 @@ func ReadConfig(path string) (*CheckerConfig, error) {
 	config.ReferenceProvidersPath = resolvePath(config.ReferenceProvidersPath, "reference_providers.json")
 	config.OutputProvidersPath = resolvePath(config.OutputProvidersPath, "providers.json")
 	config.TestsConfigPath = resolvePath(config.TestsConfigPath, "tests_config.json")
+	config.LogsPath = resolvePath(config.LogsPath, "logs")
 
 	if err := validateConfig(&config); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
@@ -71,8 +73,8 @@ func validateConfig(config *CheckerConfig) error {
 	}
 
 	if config.DefaultProvidersPath == "" || config.ReferenceProvidersPath == "" ||
-		config.OutputProvidersPath == "" || config.TestsConfigPath == "" {
-		return errors.New("all provider paths must be specified")
+		config.OutputProvidersPath == "" || config.TestsConfigPath == "" || config.LogsPath == "" {
+		return errors.New("all paths must be specified")
 	}
 
 	return nil

@@ -114,11 +114,12 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "valid config",
 			config: &CheckerConfig{
-				IntervalSeconds:        30,
+				IntervalSeconds:        60,
 				DefaultProvidersPath:   "default.json",
 				ReferenceProvidersPath: "reference.json",
 				OutputProvidersPath:    "output.json",
 				TestsConfigPath:        "tests.json",
+				LogsPath:               "logs",
 			},
 			expectError: false,
 		},
