@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"math/big"
 	"time"
+
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	"github.com/friofry/config-health-checker/rpcprovider"
@@ -15,10 +16,18 @@ import (
 
 // MultiMethodTestResult contains results for multiple method tests
 type MultiMethodTestResult struct {
-	Results map[string]CheckResult // method -> result
+	Results map[string]CheckResult `json:"results"` // method -> result
 }
 
-// TestEVMMethodWithCaller tests a single EVM method
+// ErrorResponse represents a standardized error response
+type ErrorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Details string `json:"details,omitempty"`
+}
+
+// TestEVMMethodWithCaller tests a single EVM method against multiple providers
+// Returns a map of provider names to their validation results
 func TestEVMMethodWithCaller(
 	ctx context.Context,
 	config rpctestsconfig.EVMMethodTestConfig,
@@ -27,6 +36,24 @@ func TestEVMMethodWithCaller(
 	referenceProvider rpcprovider.RpcProvider,
 	timeout time.Duration,
 ) map[string]CheckResult {
+	// Validate inputs
+	if caller == nil {
+		return map[string]CheckResult{
+			"input_error": {
+				Valid: false,
+				Error: errors.New("caller cannot be nil"),
+			},
+		}
+	}
+
+	if referenceProvider.Name == "" {
+		return map[string]CheckResult{
+			"input_error": {
+				Valid: false,
+				Error: errors.New("reference provider must have a name"),
+			},
+		}
+	}
 	// Combine reference provider with test providers
 	allProviders := append([]rpcprovider.RpcProvider{referenceProvider}, providers...)
 
@@ -212,13 +239,33 @@ type FailedMethodResult struct {
 }
 
 // parseJSONRPCResult extracts the numeric result from a JSON-RPC response
+// Returns the parsed big.Int value or an error if parsing fails
 func parseJSONRPCResult(response []byte) (*big.Int, error) {
+	if len(response) == 0 {
+		return nil, fmt.Errorf("empty response")
+	}
+
 	var jsonResponse struct {
 		Result string `json:"result"`
+		Error  struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 
 	if err := json.Unmarshal(response, &jsonResponse); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON-RPC response: %w", err)
+	}
+
+	// Check for JSON-RPC error
+	if jsonResponse.Error.Code != 0 {
+		return nil, fmt.Errorf("JSON-RPC error: %s (code: %d)",
+			jsonResponse.Error.Message,
+			jsonResponse.Error.Code)
+	}
+
+	if jsonResponse.Result == "" {
+		return nil, errors.New("empty result in JSON-RPC response")
 	}
 
 	// Remove 0x prefix if present
@@ -229,7 +276,7 @@ func parseJSONRPCResult(response []byte) (*big.Int, error) {
 
 	value, ok := new(big.Int).SetString(resultStr, 16)
 	if !ok {
-		return nil, errors.New("failed to parse result as hex number")
+		return nil, fmt.Errorf("failed to parse result as hex number: %s", resultStr)
 	}
 
 	return value, nil

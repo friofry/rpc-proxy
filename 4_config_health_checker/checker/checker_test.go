@@ -3,10 +3,11 @@ package checker
 import (
 	"context"
 	"errors"
-	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
 	"github.com/friofry/config-health-checker/requests-runner/mocks"
@@ -213,5 +214,5 @@ func TestFailedMethodResultResponse(t *testing.T) {
 	}
 
 	// Verify the response is accessible through the Result field
-	assert.Equal(t, `{"result":"test response"}`, failedResult.Result.Response)
+	assert.Equal(t, `{"result":"test response"}`, string(failedResult.Result.Response))
 }

@@ -3,10 +3,11 @@ package checker
 import (
 	"context"
 	"errors"
-	"github.com/friofry/config-health-checker/rpctestsconfig"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/friofry/config-health-checker/rpctestsconfig"
 
 	"github.com/friofry/config-health-checker/chainconfig"
 	requestsrunner "github.com/friofry/config-health-checker/requests-runner"
@@ -60,17 +61,17 @@ func TestChainValidationRunner_Run(t *testing.T) {
 		results: map[string]requestsrunner.ProviderResult{
 			"reference": {
 				Success:     true,
-				Response:    `{"jsonrpc":"2.0","id":1,"result":"0x1234"}`,
+				Response:    []byte(`{"jsonrpc":"2.0","id":1,"result":"0x1234"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 			"provider1": {
 				Success:     true,
-				Response:    `{"jsonrpc":"2.0","id":1,"result":"0x1234"}`,
+				Response:    []byte(`{"jsonrpc":"2.0","id":1,"result":"0x1234"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 			"provider2": {
 				Success:     true,
-				Response:    `{"jsonrpc":"2.0","id":1,"result":"0x5678"}`,
+				Response:    []byte(`{"jsonrpc":"2.0","id":1,"result":"0x5678"}`),
 				ElapsedTime: 100 * time.Millisecond,
 			},
 		},
@@ -124,7 +125,7 @@ func TestChainValidationRunner_ReferenceProviderFailure(t *testing.T) {
 			},
 			"provider1": {
 				Success:  true,
-				Response: `{"result":"0x1234"}`,
+				Response: []byte(`{"result":"0x1234"}`),
 			},
 		},
 	}
@@ -174,15 +175,15 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 		results: map[string]requestsrunner.ProviderResult{
 			"reference": {
 				Success:  true,
-				Response: `{"result":"0x1234"}`,
+				Response: []byte(`{"result":"0x1234"}`),
 			},
 			"provider1": {
 				Success:  true,
-				Response: `{"result":"0x1234"}`,
+				Response: []byte(`{"result":"0x1234"}`),
 			},
 			"provider2": {
 				Success:  true,
-				Response: `{"result":"0x5678"}`,
+				Response: []byte(`{"result":"0x5678"}`),
 			},
 		},
 	}
@@ -209,7 +210,7 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 		assert.True(t, chainResults["provider1"].Valid, "provider1 should be valid")
 		assert.Contains(t, chainResults, "provider2", "should have results for provider2")
 		assert.False(t, chainResults["provider2"].Valid, "provider2 should be invalid")
-		assert.Equal(t, `{"result":"0x5678"}`, chainResults["provider2"].FailedMethods["eth_blockNumber"].Result.Response, "provider2 should have correct failed response")
+		assert.Equal(t, `{"result":"0x5678"}`, string(chainResults["provider2"].FailedMethods["eth_blockNumber"].Result.Response), "provider2 should have correct failed response")
 	})
 
 	t.Run("failed methods tracking", func(t *testing.T) {
