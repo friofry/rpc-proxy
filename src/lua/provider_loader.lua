@@ -73,9 +73,24 @@ function M.reload_providers(premature, url, fallbackLocalConfig)
         end
     end
 
-    -- Сохранение конфигурации в shared memory
-    ngx.shared.providers:set("list", config)
-    ngx.log(ngx.ERR, "Providers reloaded: ", config)
+    -- Parse and transform provider configuration
+    local parsed_config, err = json.decode(config)
+    if not parsed_config then
+        ngx.log(ngx.ERR, "Failed to parse provider config: ", err)
+        return
+    end
+
+    -- Clear existing providers
+    ngx.shared.providers:flush_all()
+
+    -- Store providers by chain/network
+    for _, chain in ipairs(parsed_config.chains or {}) do
+        local key = chain.name .. ":" .. chain.network
+        ngx.shared.providers:set(key, json.encode(chain.providers))
+        ngx.log(ngx.ERR, "Loaded providers for ", key, json.encode(chain.providers))
+    end
+
+    ngx.log(ngx.ERR, "Providers reloaded and stored by chain/network")
 end
 
 -- Планировщик для вызова reload_providers
