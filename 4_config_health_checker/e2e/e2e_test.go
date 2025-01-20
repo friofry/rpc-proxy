@@ -31,7 +31,6 @@ type E2ETestSuite struct {
 const (
 	testPort        = "8081"
 	testConfigFile  = "test_config.json"
-	testOutputFile  = "test_output.json"
 	testTempDir     = "testdata"
 	shutdownTimeout = 5 * time.Second
 )

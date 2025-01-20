@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"time"
@@ -14,8 +15,12 @@ import (
 )
 
 func main() {
+	// Parse command line flags
+	configPath := flag.String("config", "checker_config.json", "path to configuration file")
+	flag.Parse()
+
 	// Read configuration
-	config, err := configreader.ReadConfig("checker_config.json")
+	config, err := configreader.ReadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("failed to read configuration: %v", err)
 	}
