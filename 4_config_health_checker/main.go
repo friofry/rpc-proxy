@@ -16,11 +16,24 @@ import (
 
 func main() {
 	// Parse command line flags
-	configPath := flag.String("config", "checker_config.json", "path to configuration file")
+	checkerConfigPath := flag.String("checker-config", "checker_config.json", "path to checker config")
+	defaultProvidersPath := flag.String("default-providers", "", "path to default providers JSON")
+	referenceProvidersPath := flag.String("reference-providers", "", "path to reference providers JSON")
 	flag.Parse()
 
 	// Read configuration
-	config, err := configreader.ReadConfig(*configPath)
+	config, err := configreader.ReadConfig(*checkerConfigPath)
+	if err != nil {
+		log.Fatalf("failed to read checker configuration: %v", err)
+	}
+
+	// Set provider paths from flags if provided
+	if *defaultProvidersPath != "" {
+		config.DefaultProvidersPath = *defaultProvidersPath
+	}
+	if *referenceProvidersPath != "" {
+		config.ReferenceProvidersPath = *referenceProvidersPath
+	}
 	if err != nil {
 		log.Fatalf("failed to read configuration: %v", err)
 	}
@@ -33,7 +46,16 @@ func main() {
 		time.Duration(config.IntervalSeconds)*time.Second,
 		func() {
 			// Create fresh runner for each execution
-			runner, err := checker.NewRunnerFromConfig(*config, caller)
+			// Create a copy of config with updated provider paths
+			runnerConfig := *config
+			if *defaultProvidersPath != "" {
+				runnerConfig.DefaultProvidersPath = *defaultProvidersPath
+			}
+			if *referenceProvidersPath != "" {
+				runnerConfig.ReferenceProvidersPath = *referenceProvidersPath
+			}
+
+			runner, err := checker.NewRunnerFromConfig(runnerConfig, caller)
 			if err != nil {
 				log.Printf("failed to create runner: %v", err)
 				return
