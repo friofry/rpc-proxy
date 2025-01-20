@@ -69,15 +69,14 @@ func NewChainValidationRunner(
 
 // Run executes validation across all configured chains and writes valid providers to output file
 func (r *ChainValidationRunner) Run(ctx context.Context) {
-	results := make(map[int64]map[string]ProviderValidationResult)
-	validChains := r.validateChains(ctx, results)
-
+	validChains, _ := r.validateChains(ctx)
 	r.writeValidChains(validChains)
 }
 
-// validateChains runs validation for all chains and returns valid chains
-func (r *ChainValidationRunner) validateChains(ctx context.Context, results map[int64]map[string]ProviderValidationResult) []chainconfig.ChainConfig {
+// validateChains runs validation for all chains and returns valid chains and validation results
+func (r *ChainValidationRunner) validateChains(ctx context.Context) ([]chainconfig.ChainConfig, map[int64]map[string]ProviderValidationResult) {
 	var validChains []chainconfig.ChainConfig
+	results := make(map[int64]map[string]ProviderValidationResult)
 
 	for chainId, chainCfg := range r.chainConfigs {
 		if refCfg, exists := r.referenceChainCfgs[chainId]; exists {
@@ -93,7 +92,7 @@ func (r *ChainValidationRunner) validateChains(ctx context.Context, results map[
 		}
 	}
 
-	return validChains
+	return validChains, results
 }
 
 // validateChain runs validation for a single chain

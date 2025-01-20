@@ -200,10 +200,10 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 
 	// Test validateChains
 	t.Run("valid chains", func(t *testing.T) {
-		results := make(map[int64]map[string]ProviderValidationResult)
-		runner.validateChains(context.Background(), results)
+		validChains, results := runner.validateChains(context.Background())
 
 		assert.Contains(t, results, int64(1), "should have results for chain ID 1")
+		assert.Len(t, validChains, 1, "should have one valid chain")
 
 		chainResults := results[1]
 		assert.Contains(t, chainResults, "provider1", "should have results for provider1")
@@ -214,10 +214,10 @@ func TestChainValidationRunner_ValidateChains(t *testing.T) {
 	})
 
 	t.Run("failed methods tracking", func(t *testing.T) {
-		results := make(map[int64]map[string]ProviderValidationResult)
-		runner.validateChains(context.Background(), results)
+		validChains, results := runner.validateChains(context.Background())
 
 		assert.Contains(t, results, int64(1), "should have results for chain ID 1")
+		assert.Len(t, validChains, 1, "should have one valid chain")
 
 		chainResults := results[1]
 		assert.Contains(t, chainResults, "provider1", "should have results for provider1")
