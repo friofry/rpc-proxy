@@ -11,6 +11,20 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const (
+	minProviders = 1
+	configKey    = "chains"
+)
+
+// ChainConfigurer defines common behavior for chain configurations
+type ChainConfigurer interface {
+	GetName() string
+	GetNetwork() string
+	GetChainID() int
+	Validate() error
+	Normalize()
+}
+
 // ChainsConfig represents a collection of chain configurations
 type ChainsConfig struct {
 	Chains []ChainConfig `json:"chains" validate:"required,dive"`
@@ -29,12 +43,67 @@ type ChainConfig struct {
 	Providers []rpcprovider.RpcProvider `json:"providers" validate:"required,dive"`
 }
 
+// GetName returns the chain name
+func (c ChainConfig) GetName() string {
+	return c.Name
+}
+
+// GetNetwork returns the chain network
+func (c ChainConfig) GetNetwork() string {
+	return c.Network
+}
+
+// GetChainID returns the chain ID
+func (c ChainConfig) GetChainID() int {
+	return c.ChainId
+}
+
+// Validate validates the chain configuration
+func (c ChainConfig) Validate() error {
+	if err := validate.Struct(c); err != nil {
+		return fmt.Errorf("invalid chain configuration: %w", err)
+	}
+	if len(c.Providers) < minProviders {
+		return fmt.Errorf("at least %d provider(s) required", minProviders)
+	}
+	return nil
+}
+
 // ReferenceChainConfig represents configuration for reference providers
 type ReferenceChainConfig struct {
 	Name     string                  `json:"name" validate:"required,lowercase"`
 	Network  string                  `json:"network" validate:"required,lowercase"`
 	ChainId  int                     `json:"chainId" validate:"required"`
 	Provider rpcprovider.RpcProvider `json:"provider" validate:"required"`
+}
+
+// GetName returns the chain name
+func (c ReferenceChainConfig) GetName() string {
+	return c.Name
+}
+
+// GetNetwork returns the chain network
+func (c ReferenceChainConfig) GetNetwork() string {
+	return c.Network
+}
+
+// GetChainID returns the chain ID
+func (c ReferenceChainConfig) GetChainID() int {
+	return c.ChainId
+}
+
+// Validate validates the reference chain configuration
+func (c ReferenceChainConfig) Validate() error {
+	if err := validate.Struct(c); err != nil {
+		return fmt.Errorf("invalid reference chain configuration: %w", err)
+	}
+	if c.Provider.Name == "" {
+		return errors.New("provider name is required")
+	}
+	if c.Provider.URL == "" {
+		return errors.New("provider URL is required")
+	}
+	return nil
 }
 
 // LoadChains loads chain configurations from a JSON file
@@ -51,38 +120,12 @@ func LoadReferenceChains(filePath string) (ReferenceChainsConfig, error) {
 	}
 
 	for _, chain := range chains {
-		if err := validateReferenceChainConfig(chain); err != nil {
-			return ReferenceChainsConfig{}, err
+		if err := chain.Validate(); err != nil {
+			return ReferenceChainsConfig{}, fmt.Errorf("invalid reference chain configuration: %w", err)
 		}
 	}
 
 	return ReferenceChainsConfig{Chains: chains}, nil
-}
-
-// validateReferenceChainConfig validates required fields in reference chain configuration
-func validateReferenceChainConfig(chain ReferenceChainConfig) error {
-	if chain.Name == "" {
-		return errors.New("chain name is required")
-	}
-	if chain.Network == "" {
-		return errors.New("network is required")
-	}
-	if chain.Provider.Name == "" {
-		return errors.New("provider name is required")
-	}
-	if chain.Provider.URL == "" {
-		return errors.New("provider URL is required")
-	}
-
-	// Ensure values are lowercase
-	if chain.Name != strings.ToLower(chain.Name) {
-		return errors.New("chain name must be lowercase")
-	}
-	if chain.Network != strings.ToLower(chain.Network) {
-		return errors.New("network must be lowercase")
-	}
-
-	return nil
 }
 
 // loadConfig is a generic function to load chain configurations
@@ -172,7 +215,7 @@ func WriteChains(filePath string, config ChainsConfig) error {
 func WriteReferenceChains(filePath string, config ReferenceChainsConfig) error {
 	// Validate each reference chain configuration
 	for _, chain := range config.Chains {
-		if err := validateReferenceChainConfig(chain); err != nil {
+		if err := chain.Validate(); err != nil {
 			return fmt.Errorf("invalid reference chain configuration: %w", err)
 		}
 	}
